@@ -87,8 +87,8 @@ function previewDate(value: string, time: string): Date {
   return instantFromLocal(date || localDateOf(new Date()), time || '00:00');
 }
 
-export function Admin() {
-  const repository = useMemo(() => createAdminRepository(), []);
+export function Admin({ demoMode = false }: { demoMode?: boolean }) {
+  const repository = useMemo(() => createAdminRepository(demoMode), [demoMode]);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [demoPackage, setDemoPackage] = useState<PublishedPackage>();
   const [draftReady, setDraftReady] = useState(false);

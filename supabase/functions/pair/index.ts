@@ -30,6 +30,9 @@ Deno.serve(async (request) => {
     const client = serviceClient();
     const ip = (request.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0].trim();
     const ipHash = await sha256Hex(ip || 'unknown');
+    if (!(await consumeRateLimit(client, 'pair:global', 30, 600))) {
+      throw new HttpError('rate_limited', 429);
+    }
     if (!(await consumeRateLimit(client, `pair:${ipHash}`, 5, 600))) {
       throw new HttpError('rate_limited', 429);
     }

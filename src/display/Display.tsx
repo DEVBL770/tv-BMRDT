@@ -6,9 +6,18 @@ import { visibleContent } from '../domain/filtering';
 import type { ContentItem, Day, PublishedPackage } from '../domain/package';
 import { instantFromLocal, localDateOf } from '../domain/time';
 import { loadDemoPackage } from '../demoPackage';
+import { PlayerScheduler } from '../player/scheduler';
+import type { PlayerWeather } from '../player/store';
 
 type DisplayProps = {
-  packageData?: PublishedPackage;
+  packageData?: PublishedPackage | undefined;
+  mediaUrls?: Record<string, string> | undefined;
+  weather?: PlayerWeather | null | undefined;
+  instant?: Date;
+  clockOffsetMs?: number;
+  scheduler?: PlayerScheduler;
+  allowDemoFallback?: boolean;
+  waitingDeviceName?: string;
   previewInstant?: Date;
   previewMode?: boolean;
 };
@@ -71,20 +80,27 @@ function currentContentAt(items: ContentItem[], instant: Date): ContentItem | un
   return items[0];
 }
 
-function useDisplayInstant(previewInstant?: Date, previewMode = false): Date {
+function useDisplayInstant(
+  previewInstant: Date | undefined,
+  previewMode: boolean,
+  scheduler: PlayerScheduler,
+  clockOffsetMs: number,
+  externallyManaged: boolean,
+): Date {
   const fixed = previewInstant ?? requestedDemoInstant();
   const fixedTime = fixed?.getTime();
-  const [now, setNow] = useState(() => fixed ?? new Date());
+  const [now, setNow] = useState(() => fixed ?? new Date(Date.now() + clockOffsetMs));
   useEffect(() => {
-    if (fixedTime !== undefined || previewMode) {
+    if (fixedTime !== undefined || previewMode || externallyManaged) {
       if (fixedTime !== undefined) {
         setNow((current) => (current.getTime() === fixedTime ? current : new Date(fixedTime)));
       }
       return;
     }
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, [fixedTime, previewMode]);
+    const update = () => setNow(new Date(Date.now() + clockOffsetMs));
+    update();
+    return scheduler.every(update, 1000);
+  }, [clockOffsetMs, externallyManaged, fixedTime, previewMode, scheduler]);
   return fixed ?? now;
 }
 
@@ -146,7 +162,18 @@ function QRImage({ url }: { url: string }) {
   ) : null;
 }
 
-function ContentCard({ item }: { item: ContentItem }) {
+function ContentCard({
+  item,
+  mediaUrls,
+  mediaMimes,
+}: {
+  item: ContentItem;
+  mediaUrls?: Record<string, string> | undefined;
+  mediaMimes?: Record<string, string>;
+}) {
+  const imageId = item.mediaIds.find(
+    (id) => mediaUrls?.[id] && mediaMimes?.[id]?.startsWith('image/'),
+  );
   return (
     <article className={`content-card content-${item.type}`} data-content-id={item.id}>
       <span className="eyebrow">
@@ -154,6 +181,9 @@ function ContentCard({ item }: { item: ContentItem }) {
       </span>
       <h3>{item.title}</h3>
       {item.body ? <p>{item.body}</p> : null}
+      {imageId && mediaUrls ? (
+        <img className="content-media" src={mediaUrls[imageId]} alt={item.title} />
+      ) : null}
       {item.titleHe ? (
         <div className="content-hebrew" lang="he" dir="rtl">
           <bdi dir="rtl">{item.titleHe}</bdi>
@@ -216,11 +246,39 @@ function DayBadge({
   );
 }
 
-export function Display({ packageData, previewInstant, previewMode = false }: DisplayProps) {
+export function Display({
+  packageData,
+  mediaUrls,
+  weather,
+  instant,
+  clockOffsetMs = 0,
+  scheduler,
+  allowDemoFallback = false,
+  waitingDeviceName = 'TV salle principale',
+  previewInstant,
+  previewMode = false,
+}: DisplayProps) {
+  const ownsScheduler = !scheduler;
+  const displayScheduler = useMemo(() => scheduler ?? new PlayerScheduler(), [scheduler]);
+  useEffect(
+    () => () => {
+      if (ownsScheduler) displayScheduler.clearAll();
+    },
+    [displayScheduler, ownsScheduler],
+  );
+  const localNow = useDisplayInstant(
+    previewInstant,
+    previewMode,
+    displayScheduler,
+    clockOffsetMs,
+    instant !== undefined,
+  );
+  const now = instant ?? localNow;
   const query = new URLSearchParams(window.location.search);
   const useDemoPackage =
     !packageData &&
-    (previewMode ||
+    (allowDemoFallback ||
+      previewMode ||
       import.meta.env.VITE_DEMO_MODE === 'true' ||
       query.get('demo') === '1' ||
       query.get('preview') === '1');
@@ -245,8 +303,16 @@ export function Display({ packageData, previewInstant, previewMode = false }: Di
   if (!data) {
     return (
       <div className="display-shell display-loading" data-theme="weekday" data-state="unknown">
-        <div className="display-empty">
-          {loadError ? 'Paquet indisponible' : 'Chargement des informations…'}
+        <div className="display-waiting">
+          <div className="brand-name">Beth Menahem</div>
+          <div className="brand-hebrew" lang="he" dir="rtl">
+            <bdi dir="rtl">בית מנחם</bdi>
+          </div>
+          <p>{waitingDeviceName}</p>
+          <div className="display-waiting-clock">{formatClock(now)}</div>
+          <div className="display-empty">
+            {loadError ? 'Paquet indisponible' : 'En attente des informations publiées…'}
+          </div>
         </div>
       </div>
     );
@@ -254,15 +320,28 @@ export function Display({ packageData, previewInstant, previewMode = false }: Di
   return (
     <DisplayCanvas
       packageData={data}
+      mediaUrls={mediaUrls}
+      weather={weather}
+      instant={now}
+      scheduler={displayScheduler}
       {...(previewInstant ? { previewInstant } : {})}
       previewMode={previewMode}
     />
   );
 }
 
-type DisplayCanvasProps = Omit<DisplayProps, 'packageData'> & { packageData: PublishedPackage };
+type DisplayCanvasProps = Omit<DisplayProps, 'packageData' | 'instant'> & {
+  packageData: PublishedPackage;
+  instant: Date;
+};
 
-function DisplayCanvas({ packageData, previewInstant, previewMode = false }: DisplayCanvasProps) {
+function DisplayCanvas({
+  packageData,
+  mediaUrls,
+  weather,
+  instant,
+  previewMode = false,
+}: DisplayCanvasProps) {
   const shell = useRef<HTMLDivElement>(null);
   const scale = useCanvasScale(shell);
   const query = new URLSearchParams(window.location.search);
@@ -272,7 +351,7 @@ function DisplayCanvas({ packageData, previewInstant, previewMode = false }: Dis
       forcedPlaylist ? { ...packageData.layout, mode: 'playlist' as const } : packageData.layout,
     [forcedPlaylist, packageData.layout],
   );
-  const now = useDisplayInstant(previewInstant, previewMode);
+  const now = instant;
   const date = localDateOf(now);
   const day = packageData.days.find((item) => item.date === date);
   const religiousState = religiousStateAt(now, packageData);
@@ -295,6 +374,14 @@ function DisplayCanvas({ packageData, previewInstant, previewMode = false }: Dis
   const slideContent = slide?.contentIds
     ?.map((id) => visibleItems.find((item) => item.id === id))
     .find((item): item is ContentItem => Boolean(item));
+  const mediaMimes = Object.fromEntries(packageData.media.map((media) => [media.id, media.mime]));
+  const weatherIsFresh =
+    weather?.temperatureC !== null &&
+    weather?.temperatureC !== undefined &&
+    weather.updatedAt !== null &&
+    weather.updatedAt !== undefined &&
+    now.getTime() - Date.parse(weather.updatedAt) <= 6 * 60 * 60_000;
+  const showWeather = isKnown && (weather === undefined || weatherIsFresh);
 
   return (
     <div
@@ -302,6 +389,7 @@ function DisplayCanvas({ packageData, previewInstant, previewMode = false }: Dis
       className={`display-shell ${previewMode ? 'display-embedded' : ''}`}
       data-theme={themeFor(religiousState)}
       data-state={religiousState.kind}
+      data-version={packageData.versionNumber}
     >
       <div className="display-canvas" style={{ '--canvas-scale': scale } as CanvasStyle}>
         <header className="display-header" data-zone="header">
@@ -336,12 +424,19 @@ function DisplayCanvas({ packageData, previewInstant, previewMode = false }: Dis
               <path d="M13 18h10l3 26H10l3-26Z" fill="none" stroke="currentColor" strokeWidth="2" />
               <path d="M12 27h12M11 36h14" stroke="currentColor" strokeWidth="2" />
             </svg>
-            {isKnown ? (
+            {showWeather ? (
               <div className="weather">
                 <WeatherMark />
                 <span>
-                  <strong>18°</strong>
+                  <strong>
+                    {weatherIsFresh && weather?.temperatureC !== null
+                      ? `${Math.round(weather.temperatureC ?? 18)}°`
+                      : '18°'}
+                  </strong>
                   <small>Paris</small>
+                  {weatherIsFresh ? (
+                    <small className="weather-attribution">{weather?.attribution}</small>
+                  ) : null}
                 </span>
               </div>
             ) : null}
@@ -376,7 +471,11 @@ function DisplayCanvas({ packageData, previewInstant, previewMode = false }: Dis
               </div>
             ) : (
               <div className="playlist-content">
-                {slideContent ? <ContentCard item={slideContent} /> : <ScheduleFallback />}
+                {slideContent ? (
+                  <ContentCard item={slideContent} mediaUrls={mediaUrls} mediaMimes={mediaMimes} />
+                ) : (
+                  <ScheduleFallback />
+                )}
                 {slideContent?.qrUrl ? <QRImage url={slideContent.qrUrl} /> : null}
               </div>
             )}
@@ -448,7 +547,11 @@ function DisplayCanvas({ packageData, previewInstant, previewMode = false }: Dis
               aria-label="Vie communautaire"
             >
               <SectionHeading number="03" title="La vie de la communauté" />
-              {activeContent ? <ContentCard item={activeContent} /> : <ScheduleFallback />}
+              {activeContent ? (
+                <ContentCard item={activeContent} mediaUrls={mediaUrls} mediaMimes={mediaMimes} />
+              ) : (
+                <ScheduleFallback />
+              )}
               {isKnown ? (
                 <>
                   {sponsor ? (

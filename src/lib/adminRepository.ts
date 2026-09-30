@@ -244,6 +244,6 @@ export class SupabaseRepository implements AdminRepository {
   }
 }
 
-export function createAdminRepository(): AdminRepository {
-  return supabase ? new SupabaseRepository(supabase) : new DemoRepository();
+export function createAdminRepository(forceDemo = false): AdminRepository {
+  return !forceDemo && supabase ? new SupabaseRepository(supabase) : new DemoRepository();
 }

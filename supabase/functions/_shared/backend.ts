@@ -78,12 +78,6 @@ export function serviceClient(): BackendClient {
   });
 }
 
-export function supabaseUrl(): string {
-  const url = Deno.env.get('SUPABASE_URL');
-  if (!url) throw new HttpError('service_unavailable', 503);
-  return url.replace(/\/$/, '');
-}
-
 export function bearerToken(request: Request): string | undefined {
   const header = request.headers.get('authorization');
   const match = header?.match(/^Bearer\s+(.+)$/i);
@@ -105,11 +99,6 @@ export async function requireAdmin(request: Request): Promise<{ id: string; emai
   if (error) throw new HttpError('authorization_unavailable', 503);
   if (isAdmin !== true) throw new HttpError('forbidden', 403);
   return { id: userData.user.id, ...(userData.user.email ? { email: userData.user.email } : {}) };
-}
-
-export function isServiceRoleRequest(request: Request): boolean {
-  const configured = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  return Boolean(configured && bearerToken(request) === configured);
 }
 
 export async function sha256Hex(value: string): Promise<string> {

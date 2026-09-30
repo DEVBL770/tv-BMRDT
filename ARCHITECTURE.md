@@ -6,7 +6,7 @@ Référence fonctionnelle : cahier des charges original + « Architecture V1 » 
 
 ```
 GitHub (tv-BMRDT) ──CI──► Hébergement statique : /display  /admin
-                                   │ clé anon publique pour connexion admin ; TV encore en démo
+                                   │ shell PWA ; admin minimal et player connecté
                                    ▼
 Supabase Free : Auth (1 admin) · Postgres + RLS · Storage privé `media` · Edge Functions
                                    │ serveur uniquement
@@ -30,7 +30,7 @@ src/
     providers/     # CalendarProvider, ZmanimProvider, StudyProvider, WeatherProvider (+ Hebcal, MET, Chabad/CalJ désactivés)
   display/         # player TV (mode fixe, playlist, thèmes)
   admin/           # admin mobile-first
-  player/          # sync, IndexedDB, activation atomique, heartbeat
+  player/          # appairage, sync, IndexedDB, activation atomique, PWA et heartbeat
   fixtures/        # paquet de démonstration (mode démo sans backend)
 supabase/
   migrations/      # SQL versionné
@@ -73,8 +73,8 @@ n’ont aucun accès PostgREST : ils passent par `player`, qui vérifie `sha256(
 environnement serveur. L’audit des changements de `devices` n’enregistre jamais `token_hash`.
 
 Storage : bucket privé `media`, limite 12 MiB, MIME JPEG/PNG/WEBP/PDF ; policies admin seulement.
-Les appareils reçoivent via `player` des URLs signées d’une heure, à copier ensuite en IndexedDB
-par le futur player connecté.
+Les appareils reçoivent via `player` des URLs signées d’une heure, vérifient les octets par SHA-256
+et stockent les blobs en IndexedDB.
 
 ## 4. Paquet publié (`schemaVersion: 1`)
 
@@ -105,7 +105,8 @@ Day { date, weekday, hebrew:{fr,he,day,month,year}, parasha?, holidays[], roshHo
 
 ## 6. Synchronisation et offline
 
-- `pair` reçoit un code et le nom d’appareil ; limitation 5 essais/10 min/IP, consommation atomique,
+- `pair` reçoit un code et le nom d’appareil ; limitation 5 essais/10 min/IP et 30 essais globaux,
+  consommation atomique,
   expiration à 10 min et code à usage unique. Le jeton 256 bits est révélé une fois, seul son SHA-256
   est conservé.
 - `player.sync` reçoit `knownVersion`, `displayedVersion`, heure/build/diagnostic et répond avec
@@ -113,7 +114,8 @@ Day { date, weekday, hebrew:{fr,he,day,month,year}, parasha?, holidays[], roshHo
   et ne met à jour le heartbeat qu’après 25 secondes. Un rafraîchissement calendrier est lancé en
   arrière-plan si la dernière réussite a plus de 24 h ou si l’horizon est inférieur à 330 jours.
 - `player.package` reçoit le numéro d’une version publiée et ne lit jamais le brouillon ; il renvoie
-  le paquet et les URLs Storage signées valables une heure.
+  le paquet et les URLs Storage signées valables une heure, réécrites vers l’origine API publique
+  afin de ne pas exposer l’hôte interne utilisé par la clé de service.
 - `admin` exige un JWT valide et vérifie `is_admin()` avec le JWT de l’appelant. Ses actions
   comprennent l’appairage/révocation, `refreshData`, `publish`, `previewPackage`, `restore`,
   `createUpload`, `finalizeUpload`, `deleteMedia` et `export`. Le refresh en échec conserve les
@@ -121,12 +123,33 @@ Day { date, weekday, hebrew:{fr,he,day,month,year}, parasha?, holidays[], roshHo
   changé ou si l’horizon est court, depuis le snapshot courant et non depuis le brouillon.
 - `weather` accepte un jeton appareil ou un JWT admin ; il renvoie le cache normalisé et, après
   expiration, interroge MET Locationforecast compact avec `MET_USER_AGENT` et `If-Modified-Since`.
-- Activation atomique côté player connecté (étape suivante) : télécharger paquet → valider zod +
-  hash → télécharger tous les médias → vérifier sha256 → écrire en IndexedDB (`versions`, `media`)
-  → basculer le pointeur `activeVersion` → garder la précédente, purger les plus anciennes.
-- Service worker (vite-plugin-pwa / Workbox) : précache shell + polices + icônes ; navigation fallback vers `/display` ; aucune mise en cache de `/admin` ni des appels API ; mise à jour du SW différée hors Chabbat/Yom Tov.
-- `navigator.storage.persist()` demandé ; quota vérifié, statut remonté au heartbeat.
-- Backoff exponentiel (15 s → 5 min) en cas d'échec.
+- Le player `/display` utilise la même interface de paquet en démo et en production. Sans URL
+  Supabase, la fixture est chargée dynamiquement ; en mode réel, l’appairage conserve le jeton
+  appareil dans IndexedDB et le paquet actif continue de s’afficher sans connexion.
+- Base IndexedDB `beth-menahem-player` : `versions` (active + précédente), `media` (blob par
+  SHA-256), `meta` (appareil, synchronisation, météo, état de persistance et erreur). Une activation
+  valide le schéma et le hash canonique partagé avec `compile.ts`, télécharge/vérifie tous les
+  médias avant de basculer `activeVersion` et `previousVersion` dans une transaction unique, puis
+  purge les versions et blobs orphelins. En cas d’échec, la version affichée ne change pas ;
+  `QuotaExceededError` entraîne une purge puis un seul nouvel essai.
+- Le heartbeat part toutes les 15 s avec ±2 s de jitter et inclut versions connue/affichée,
+  horloge, hash du build, cache et dernière erreur. Le backoff réseau croît de 15 s à 5 min et
+  revient à 15 s après un succès. Une réponse 401 efface le jeton, conserve l’affichage mis en cache
+  et suspend la synchronisation jusqu’au réappairage. L’horloge reste locale, sauf dérive supérieure
+  à 60 s avec une synchronisation réussie datant de moins de 24 h.
+- Le rafraîchissement calendrier déclenché par `player.sync` appelle directement
+  `refreshCalendar()` en tâche de fond sous le verrou `calendar-refresh` ; il ne passe pas par un
+  appel HTTP `admin` ni par une clé service transmise en requête.
+- `vite-plugin-pwa` précache le shell et les polices, et fournit un fallback de navigation pour
+  `/display` et `/admin`. Il n’y a aucun cache runtime des fonctions ou API Supabase. Les mises à
+  jour et le reload quotidien à 04:00 locale attendent la fin de Chabbat/Yom Tov plus 30 min. Tous
+  les temporisateurs applicatifs passent par `PlayerScheduler`; un watchdog recharge la page si
+  l’horloge n’avance plus pendant 60 s.
+- `navigator.storage.persist()` est demandé au démarrage ; le résultat apparaît dans
+  `cacheStatus`. La météo est actualisée toutes les 30 min avec le jeton appareil, conservée dans
+  IndexedDB et masquée au-delà de 6 h (l’attribution MET n’apparaît qu’avec la météo).
+- Un point discret indique plus de 5 min sans synchronisation réussie. `Ctrl+Shift+P` ouvre
+  l’appairage sans effacer un paquet mis en cache.
 
 ## 7. Sécurité
 
@@ -137,9 +160,8 @@ de fréquence ; aucune erreur technique affichée sur la TV ; CORS limité aux o
 `_headers` Cloudflare. Les versions publiées sont immuables ; `purge_old_versions()` ne peut
 supprimer que les versions hors rétention et jamais la courante.
 
-Le frontend actuel inclut uniquement la connexion admin minimale et le dépôt de brouillons
-démo/Supabase. L’UI de gestion complète, la connexion du player et son mode offline restent hors
-de cette étape.
+Le frontend comprend la connexion admin minimale et le player PWA connecté/offline. L’UI de
+gestion complète reste hors périmètre de l’étape 6.
 
 ## 8. Coûts et quotas
 

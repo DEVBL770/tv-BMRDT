@@ -91,11 +91,19 @@ mock et les clés de test sont réservés au développement/CI.
   publiés existants sont préservés ; aucun paquet de remplacement n’est publié.
 - L’appel `player.sync` déclenche le rafraîchissement en arrière-plan si la dernière réussite date
   de plus de 24 h ou si l’horizon du paquet est inférieur à 330 jours.
+- Le player interroge `player.sync` toutes les 15 secondes ; ces appels consultent la base et
+  entretiennent l’activité du projet Supabase Free tant que la TV reste allumée et connectée.
+  Après plus de 7 jours TV éteinte/inactive, le projet Free peut être mis en pause. Le paquet
+  IndexedDB reste affiché sur la TV, mais les nouvelles publications et la météo attendent le retour
+  du backend.
 - Les paramètres religieux restent `pending` jusqu’à validation explicite du responsable religieux.
   Vérifiez les relevés de `docs/VALIDATION_RELIGIEUSE.md` et les sources avant approbation.
-- Après une pause d’un projet hébergé, réactivez-le depuis le tableau de bord Supabase, vérifiez
-  l’état de la base/Auth/Storage, puis exécutez une synchronisation d’appareil et un rafraîchissement
-  calendrier contrôlé. Ne republiez pas un brouillon simplement pour reprendre le service.
+- Après une pause de plus de 7 jours : réactivez le projet depuis le tableau de bord Supabase et
+  attendez que Postgres, Auth, Storage et les Edge Functions soient disponibles. Vérifiez la
+  connexion avec l’origine configurée, lancez un `admin.refreshData` contrôlé puis contrôlez le
+  dernier `source_health` et la version publiée. Une TV connectée reprend le polling et le
+  téléchargement à sa prochaine synchronisation ; si elle ne dispose plus d’un jeton valide,
+  révoquez/réappairez-la. Ne republiez pas un brouillon simplement pour reprendre le service.
 - Les appareils sont appairés par un code à usage unique depuis l’action admin ; révoquez tout
   appareil perdu depuis l’action admin. Le jeton brut n’est montré qu’une seule fois.
 

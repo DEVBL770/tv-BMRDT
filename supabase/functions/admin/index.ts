@@ -11,7 +11,6 @@ import {
   errorResponse,
   handleCors,
   HttpError,
-  isServiceRoleRequest,
   jsonResponse,
   requestJson,
   requireAdmin,
@@ -440,8 +439,7 @@ Deno.serve(async (request) => {
     const action = ActionSchema.safeParse(input);
     if (!action.success) throw new HttpError('invalid_request', 400);
     const client = serviceClient();
-    const internalRefresh = action.data.action === 'refreshData' && isServiceRoleRequest(request);
-    const actor = internalRefresh ? null : await requireAdmin(request);
+    const actor = await requireAdmin(request);
     switch (action.data.action) {
       case 'createPairingCode': {
         const parsed = CreatePairingSchema.safeParse(input);
@@ -463,26 +461,21 @@ Deno.serve(async (request) => {
         return jsonResponse(request, { id: data.id, revokedAt: now });
       }
       case 'refreshData': {
-        let ownerId: string | null = null;
-        if (!internalRefresh) {
-          ownerId = crypto.randomUUID();
-          const { data: acquired, error } = await client.rpc('try_acquire_refresh_lock', {
+        const ownerId = crypto.randomUUID();
+        const { data: acquired, error } = await client.rpc('try_acquire_refresh_lock', {
+          p_lock_name: 'calendar-refresh',
+          p_owner_id: ownerId,
+          p_ttl_seconds: 600,
+        });
+        if (error) throw new HttpError('refresh_unavailable', 503);
+        if (acquired !== true) throw new HttpError('refresh_in_progress', 409);
+        try {
+          return jsonResponse(request, await refreshCalendar(client, actor.id));
+        } finally {
+          await client.rpc('release_refresh_lock', {
             p_lock_name: 'calendar-refresh',
             p_owner_id: ownerId,
-            p_ttl_seconds: 600,
           });
-          if (error) throw new HttpError('refresh_unavailable', 503);
-          if (acquired !== true) throw new HttpError('refresh_in_progress', 409);
-        }
-        try {
-          return jsonResponse(request, await refreshCalendar(client, actor?.id ?? null));
-        } finally {
-          if (ownerId) {
-            await client.rpc('release_refresh_lock', {
-              p_lock_name: 'calendar-refresh',
-              p_owner_id: ownerId,
-            });
-          }
         }
       }
       case 'publish':

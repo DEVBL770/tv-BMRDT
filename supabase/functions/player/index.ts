@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { refreshCalendar } from '../_shared/admin.ts';
 import { addLocalDays, localDateOf } from '../_shared/domain/time.ts';
 import {
   authenticateDevice,
@@ -10,18 +11,21 @@ import {
   requestJson,
   runInBackground,
   serviceClient,
-  supabaseUrl,
 } from '../_shared/backend.ts';
 
 const SyncRequest = z
   .object({
     action: z.literal('sync'),
-    knownVersion: z.number().int().nonnegative().optional(),
-    displayedVersion: z.number().int().nonnegative().optional(),
+    knownVersion: z.number().int().nonnegative().nullable().optional(),
+    displayedVersion: z.number().int().nonnegative().nullable().optional(),
     clientTime: z.union([z.string().max(100), z.number()]).optional(),
     build: z.string().max(100).optional(),
     cacheStatus: z.string().max(40).optional(),
-    lastError: z.string().max(200).optional(),
+    lastError: z
+      .string()
+      .regex(/^[a-z_]{1,40}$/)
+      .nullable()
+      .optional(),
   })
   .strict();
 const PackageRequest = z
@@ -36,6 +40,20 @@ type MediaManifestItem = {
   mime?: string;
 };
 
+function publicApiOrigin(request: Request): URL {
+  const requestUrl = new URL(request.url);
+  const host = request.headers.get('x-forwarded-host')?.split(',')[0].trim();
+  if (!host) return requestUrl;
+
+  const protocol =
+    request.headers.get('x-forwarded-proto')?.split(',')[0].trim() ??
+    requestUrl.protocol.slice(0, -1);
+  const origin = new URL(`${protocol}://${host}`);
+  const port = request.headers.get('x-forwarded-port')?.split(',')[0].trim();
+  if (!origin.port && port) origin.port = port;
+  return origin;
+}
+
 async function maybeRefreshCalendar(client: ReturnType<typeof serviceClient>): Promise<void> {
   const ownerId = crypto.randomUUID();
   const { data: acquired, error } = await client.rpc('try_acquire_refresh_lock', {
@@ -45,18 +63,7 @@ async function maybeRefreshCalendar(client: ReturnType<typeof serviceClient>): P
   });
   if (error || acquired !== true) return;
   try {
-    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!key) return;
-    const response = await fetch(`${supabaseUrl()}/functions/v1/admin`, {
-      method: 'POST',
-      headers: {
-        apikey: key,
-        authorization: `Bearer ${key}`,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'refreshData' }),
-    });
-    if (!response.ok) return;
+    await refreshCalendar(client, null);
   } finally {
     await client.rpc('release_refresh_lock', {
       p_lock_name: 'calendar-refresh',
@@ -108,7 +115,7 @@ async function handleSync(
         client_time: Number.isFinite(clientMillis) ? new Date(clientMillis).toISOString() : null,
         clock_skew_seconds: clockSkew,
         cache_status: input.cacheStatus ?? null,
-        last_error_code: input.lastError ? 'client_error' : null,
+        last_error_code: input.lastError ?? null,
         updated_at: nowIso,
       })
       .eq('id', device.id);
@@ -173,12 +180,16 @@ async function handlePackage(
         .from('media')
         .createSignedUrl(paths.get(item.id)!, 3600);
       if (signError || !data?.signedUrl) throw new HttpError('media_unavailable', 503);
+      const signedUrl = new URL(data.signedUrl);
+      const publicOrigin = publicApiOrigin(request);
+      signedUrl.protocol = publicOrigin.protocol;
+      signedUrl.host = publicOrigin.host;
       return {
         id: item.id,
         sha256: item.sha256,
         bytes: item.bytes,
         mime: item.mime,
-        url: data.signedUrl,
+        url: signedUrl.toString(),
       };
     }),
   );

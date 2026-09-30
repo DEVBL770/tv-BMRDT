@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -67,7 +68,6 @@ let pairingCode = '';
 let firstPublishedVersion: PublishedVersion | null = null;
 let originalContent: { body: string | null; media_ids: string[] } | null = null;
 let serviceRunning = false;
-let ipCounter = 1;
 const deviceIds: string[] = [];
 const uploadedPaths: string[] = [];
 
@@ -90,9 +90,20 @@ async function edge(
   return { response, body: body as Record<string, unknown> };
 }
 
+function queryLocalDatabase(sql: string): { rows: Array<Record<string, string>> } {
+  const output = execFileSync(
+    'pnpm',
+    ['exec', 'supabase', 'db', 'query', '--local', '--output-format', 'json', sql],
+    { encoding: 'utf8' },
+  );
+  const jsonStart = output.indexOf('{');
+  if (jsonStart < 0) throw new Error('Supabase query did not return JSON.');
+  return JSON.parse(output.slice(jsonStart)) as { rows: Array<Record<string, string>> };
+}
+
 function nextIp() {
-  const octet = (ipCounter++ % 250) + 1;
-  return `198.51.100.${octet}`;
+  const random = randomUUID().replaceAll('-', '');
+  return `2001:db8:${random.slice(0, 4)}:${random.slice(4, 8)}:${random.slice(8, 12)}:${random.slice(12, 16)}:${random.slice(16, 20)}:${random.slice(20, 24)}`;
 }
 
 async function setMockMode(mode: 'ok' | 'fail' | 'invalid') {
@@ -268,6 +279,44 @@ describe.sequential('Supabase local integration', () => {
     expect(adminToken).not.toBe('');
   });
 
+  it('grants no table privileges in the public schema to anon', () => {
+    const result = queryLocalDatabase(`
+      select t.table_name, p.privilege
+      from information_schema.tables t
+      cross join unnest(array[
+        'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'
+      ]) p(privilege)
+      where t.table_schema = 'public'
+        and has_table_privilege(
+          'anon',
+          format('%I.%I', t.table_schema, t.table_name),
+          p.privilege
+        )
+      order by t.table_name, p.privilege
+    `);
+    expect(result.rows).toEqual([]);
+  });
+
+  it('rejects the service-role key on every admin action', async () => {
+    const actions = [
+      'createPairingCode',
+      'revokeDevice',
+      'refreshData',
+      'publish',
+      'previewPackage',
+      'restore',
+      'createUpload',
+      'finalizeUpload',
+      'deleteMedia',
+      'export',
+    ];
+    for (const action of actions) {
+      const result = await edge('admin', { action }, { token: serviceKey });
+      expect(result.response.status, action).toBe(401);
+      expect(result.body, action).toEqual({ error: 'unauthorized' });
+    }
+  });
+
   it('denies anonymous and non-admin table and storage access', async () => {
     const results = await Promise.all(
       tables.map(async (table) => ({
@@ -436,6 +485,30 @@ describe.sequential('Supabase local integration', () => {
     expect(limited.response.status).toBe(429);
   });
 
+  it('rate-limits pairing globally across spoofed IP headers', async () => {
+    await service.from('rate_limits').delete().eq('key', 'pair:global');
+    const ips = Array.from({ length: 31 }, nextIp);
+    try {
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const result = await edge(
+          'pair',
+          { code: 'ABCDEFGH', deviceName: 'Écran de test' },
+          { headers: { 'x-forwarded-for': ips[attempt]! } },
+        );
+        expect(result.response.status).toBe(401);
+      }
+      const blocked = await edge(
+        'pair',
+        { code: 'ABCDEFGH', deviceName: 'Écran de test' },
+        { headers: { 'x-forwarded-for': ips[30]! } },
+      );
+      expect(blocked.response.status).toBe(429);
+      expect(blocked.body).toEqual({ error: 'rate_limited' });
+    } finally {
+      await service.from('rate_limits').delete().eq('key', 'pair:global');
+    }
+  });
+
   it('rejects unknown player tokens and denies device-token PostgREST access', async () => {
     const unknown = await edge(
       'player',
@@ -450,6 +523,38 @@ describe.sequential('Supabase local integration', () => {
       },
     });
     expect(rest.ok).toBe(false);
+  });
+
+  it('refreshes the calendar directly from the player background sync', async () => {
+    await setMockMode('ok');
+    const { error: deleteError } = await service
+      .from('source_health')
+      .delete()
+      .eq('source', 'hebcal');
+    expect(deleteError).toBeNull();
+    const startedAt = Date.now();
+    const device = await pairDevice('TV refresh direct');
+    const synced = await edge(
+      'player',
+      { action: 'sync', clientTime: new Date().toISOString(), cacheStatus: 'empty' },
+      { headers: { 'x-device-token': device.token } },
+    );
+    expect(synced.response.status).toBe(200);
+
+    let lastSuccessAt: string | null = null;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const { data, error } = await service
+        .from('source_health')
+        .select('last_success_at')
+        .eq('source', 'hebcal')
+        .maybeSingle();
+      expect(error).toBeNull();
+      lastSuccessAt = data?.last_success_at ?? null;
+      if (lastSuccessAt && Date.parse(lastSuccessAt) >= startedAt) break;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    expect(lastSuccessAt).not.toBeNull();
+    expect(Date.parse(lastSuccessAt!)).toBeGreaterThanOrEqual(startedAt);
   });
 
   it('refreshes at least 400 calendar days and records source health success', async () => {

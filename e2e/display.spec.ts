@@ -142,7 +142,7 @@ test('admin mobile 390×844 : horaires, annonces et aperçu avec captures', asyn
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
 
-  await page.goto('/admin');
+  await page.goto('/admin?demo=1');
   await page.getByRole('button', { name: 'Horaires', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Résultat résolu · 14 jours' })).toBeVisible();
   const confirmationPadding = await page

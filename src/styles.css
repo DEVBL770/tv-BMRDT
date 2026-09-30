@@ -2118,3 +2118,226 @@ button {
   font-size: 32px;
   text-align: center;
 }
+
+.display-shell:not(.display-embedded) .display-waiting {
+  display: grid;
+  min-height: 100vh;
+  align-content: center;
+  justify-items: center;
+  gap: 24px;
+  color: #493a2d;
+  text-align: center;
+}
+
+.display-shell:not(.display-embedded) .display-waiting .brand-name {
+  font-size: 64px;
+}
+
+.display-shell:not(.display-embedded) .display-waiting .brand-hebrew {
+  font-size: 40px;
+}
+
+.display-shell:not(.display-embedded) .display-waiting > p {
+  margin: 0;
+  font-size: 28px;
+}
+
+.display-shell:not(.display-embedded) .display-waiting-clock {
+  color: #835c2e;
+  font-family: var(--font-serif);
+  font-size: 112px;
+  line-height: 1;
+}
+
+.display-shell:not(.display-embedded) .display-waiting .display-empty {
+  min-height: auto;
+  padding: 0;
+  font-size: 28px;
+}
+
+.display-shell:not(.display-embedded) .content-media {
+  display: block;
+  max-width: 100%;
+  max-height: 250px;
+  margin: 20px auto 0;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.display-shell:not(.display-embedded) .weather-attribution {
+  color: #766753;
+  font-size: 16px;
+}
+
+.player-root {
+  position: relative;
+  min-height: 100vh;
+}
+
+.player-indicators {
+  position: fixed;
+  z-index: 5;
+  top: 18px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.unauthorized-badge {
+  padding: 7px 12px;
+  border: 1px solid rgb(138 73 41 / 35%);
+  border-radius: 999px;
+  background: rgb(255 248 234 / 92%);
+  color: #774327;
+  font-size: 18px;
+}
+
+.offline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #8b8174;
+  box-shadow: 0 0 0 4px rgb(139 129 116 / 18%);
+}
+
+.pairing-screen,
+.pairing-overlay,
+.player-configuration-error {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 22px;
+  overflow: auto;
+  padding: 48px;
+  background: #f3eee3;
+  color: #372c20;
+  font-family: var(--font-sans);
+  text-align: center;
+}
+
+.pairing-screen > .pairing-panel,
+.pairing-overlay > .pairing-panel {
+  width: min(100%, 760px);
+}
+
+.pairing-overlay {
+  background: rgb(32 27 23 / 72%);
+}
+
+.pairing-overlay > .pairing-panel {
+  max-width: 620px;
+  padding: 42px;
+  border: 1px solid rgb(166 124 82 / 35%);
+  border-radius: 18px;
+  background: #f3eee3;
+  box-shadow: 0 24px 80px rgb(12 10 8 / 32%);
+}
+
+.pairing-panel {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 22px;
+}
+
+.pairing-panel > * {
+  width: 100%;
+}
+
+.pairing-overlay .pairing-brand,
+.pairing-overlay .pairing-clock {
+  display: none;
+}
+
+.pairing-brand .brand-name,
+.player-configuration-error .brand-name {
+  font-family: var(--font-serif);
+  font-size: 56px;
+  font-weight: 600;
+}
+
+.pairing-brand .brand-hebrew,
+.player-configuration-error .brand-hebrew {
+  color: #886333;
+  font-family: var(--font-hebrew);
+  font-size: 36px;
+}
+
+.pairing-clock {
+  color: #87602f;
+  font-family: var(--font-serif);
+  font-size: 84px;
+  line-height: 1;
+}
+
+.pairing-screen h1,
+.pairing-overlay h1 {
+  margin: 8px 0 0;
+  font-family: var(--font-serif);
+  font-size: 48px;
+}
+
+.pairing-screen p,
+.pairing-overlay p {
+  margin: 0;
+  font-size: 24px;
+}
+
+.pairing-screen label,
+.pairing-overlay label {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.pairing-screen input,
+.pairing-overlay input {
+  width: 100%;
+  min-height: 62px;
+  padding: 12px 16px;
+  border: 1px solid #b7a88d;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #30261d;
+  font-size: 28px;
+}
+
+.pairing-screen label:last-of-type input,
+.pairing-overlay label:last-of-type input {
+  font-family: var(--font-mono);
+  font-size: 34px;
+  letter-spacing: 0.22em;
+  text-align: center;
+}
+
+.pairing-screen button,
+.pairing-overlay button {
+  min-height: 66px;
+  border: 0;
+  border-radius: 8px;
+  background: #805c32;
+  color: #fffaf1;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.pairing-screen button:disabled,
+.pairing-overlay button:disabled {
+  opacity: 0.55;
+}
+
+.pairing-error {
+  color: #8c332a;
+  font-weight: 700;
+}
+
+.player-configuration-error {
+  font-size: 28px;
+}
