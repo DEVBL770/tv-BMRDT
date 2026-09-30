@@ -25,7 +25,10 @@ export const ContentItemSchema = z
     body: z.string().optional(),
     titleHe: z.string().optional(),
     mediaIds: z.array(z.string()),
-    qrUrl: z.url().optional(),
+    qrUrl: z
+      .url()
+      .refine((value) => new URL(value).protocol === 'https:', 'L’URL du QR doit utiliser HTTPS.')
+      .optional(),
     startsAt: InstantSchema.optional(),
     endsAt: InstantSchema.optional(),
     weekdays: z.array(z.number().int().min(0).max(6)).optional(),
@@ -36,13 +39,6 @@ export const ContentItemSchema = z
     durationSec: z.number().positive(),
   })
   .superRefine((item, context) => {
-    if (item.type === 'sponsor' && !item.isCommercial) {
-      context.addIssue({
-        code: 'custom',
-        path: ['isCommercial'],
-        message: 'Un contenu sponsor doit être commercial.',
-      });
-    }
     if (item.startsAt && item.endsAt && Date.parse(item.startsAt) > Date.parse(item.endsAt)) {
       context.addIssue({
         code: 'custom',

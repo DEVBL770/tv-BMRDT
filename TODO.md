@@ -35,13 +35,22 @@ Légende : [x] fait · [~] en cours · [ ] à faire · [!] bloqué (accès/déci
 - [x] Supabase CLI local, migrations reproductibles, seed et bucket Storage privé
 - [x] RLS/grants, audit, publication immuable, rétention et verrous
 - [x] Edge Functions pair/player/admin/weather, refresh, publication, restauration, médias et export
-- [x] Suite locale de 34 tests d'intégration distincts : 34/34 réussis après `supabase db reset`
+- [x] Suite locale de 35 tests d'intégration distincts : 35/35 réussis après `supabase db reset`
 - [x] Job CI séparé pour réinitialiser Supabase et exécuter l'intégration
 
 ## Étape 5 — Admin
 
 - [x] Repository démo/Supabase et connexion minimale par e-mail/mot de passe
-- [ ] Interface complète d'administration des contenus et horaires
+- [x] Navigation mobile-first et sections Tableau de bord, Horaires, Contenus, Médias, Écran, Historique, Appareils, Sources et Réglages
+- [x] Règles et exceptions, aperçus compilés côté serveur, publication avec résumé et restauration versionnée
+- [x] Flux médias sécurisé : normalisation image, PDF jusqu'à six pages, upload signé, finalisation, budget et suppression protégée
+- [x] Appairage/révocation TV, état des sources, overrides, export et approbation religieuse explicite
+- [x] Démo fonctionnelle sans backend avec actions Supabase désactivées et expliquées
+- [x] Tests unitaires repository/mapping/résumé publication et normalisation des médias
+- [x] E2E admin : 8 flux fonctionnels distincts et 1 scénario de captures (9 vues mobiles, 2 bureau)
+- [x] Le job CI `integration` exécute `pnpm e2e` après les tests backend
+- [x] Vérification après reset Supabase : lint, format, typecheck, 67 tests unitaires, build, 13 E2E et 35 tests d’intégration
+- [ ] Validation visuelle finale par l'utilisateur
 
 ## Étape 6 — Player offline
 

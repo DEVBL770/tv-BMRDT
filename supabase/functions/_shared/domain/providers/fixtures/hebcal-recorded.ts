@@ -27,7 +27,7 @@ export const calendarResponse = {
       memo: 'Diaspora',
     },
     {
-      title: '29th of Tishrei',
+      title: '29. Tishrei',
       date: '2026-10-10',
       hdate: '29 Tishrei 5787',
       category: 'hebdate',
@@ -36,9 +36,10 @@ export const calendarResponse = {
       heDateParts: { y: 'תשפ״ז', m: 'תשרי', d: 'כ״ט' },
     },
     {
-      title: 'Parashat Bereshit',
+      title: 'Parachah Berechit',
       date: '2026-10-10',
       hdate: '29 Tishrei 5787',
+      title_orig: 'Parashat Bereshit',
       category: 'parashat',
       hebrew: 'פרשת בראשית',
       link: 'https://hebcal.com/s/5787/1?us=js&um=api',

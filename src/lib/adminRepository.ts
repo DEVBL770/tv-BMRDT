@@ -2,10 +2,14 @@ import type { ContentItem, Layout } from '../domain/package';
 import type { MinyanException, MinyanRule } from '../domain/minyan';
 import { supabase } from './supabase';
 
+export type AdminContentItem = ContentItem & {
+  status: 'draft' | 'ready' | 'archived';
+};
+
 export type AdminDraft = {
   rules: MinyanRule[];
   exceptions: MinyanException[];
-  content: ContentItem[];
+  content: AdminContentItem[];
   layout: Layout;
 };
 
@@ -44,6 +48,104 @@ function databaseError(error: { message?: string } | null): void {
   if (error) throw new Error('database_unavailable');
 }
 
+export function minyanRuleFromRow(row: Record<string, unknown>): MinyanRule {
+  return {
+    id: String(row.id),
+    office: String(row.office),
+    time: typeof row.time === 'string' ? row.time : null,
+    ...(typeof row.valid_from === 'string' ? { validFrom: row.valid_from } : {}),
+    ...(typeof row.valid_to === 'string' ? { validTo: row.valid_to } : {}),
+    weekdays: asArray<number>(row.weekdays),
+    dayKinds: asArray<string>(row.day_kinds),
+    priority: Number(row.priority ?? 0),
+    active: row.active === true,
+    status: row.status === 'confirmed' ? 'confirmed' : 'to_confirm',
+    cancelled: row.cancelled === true,
+  };
+}
+
+export function minyanRuleToRow(rule: MinyanRule) {
+  return {
+    id: rule.id,
+    office: rule.office,
+    time: rule.cancelled ? null : rule.time,
+    valid_from: rule.validFrom ?? null,
+    valid_to: rule.validTo ?? null,
+    weekdays: rule.weekdays ?? [],
+    day_kinds: rule.dayKinds ?? [],
+    priority: rule.priority,
+    active: rule.active,
+    status: rule.status,
+    cancelled: rule.cancelled === true,
+  };
+}
+
+export function minyanExceptionFromRow(row: Record<string, unknown>): MinyanException {
+  return {
+    id: String(row.id),
+    date: String(row.local_date),
+    office: String(row.office),
+    time: typeof row.time === 'string' ? row.time : null,
+    cancelled: row.cancelled === true,
+  };
+}
+
+export function minyanExceptionToRow(item: MinyanException) {
+  return {
+    ...(item.id ? { id: item.id } : {}),
+    local_date: item.date,
+    office: item.office,
+    time: item.cancelled ? null : item.time,
+    cancelled: item.cancelled,
+  };
+}
+
+export function contentFromRow(row: Record<string, unknown>): AdminContentItem {
+  return {
+    id: String(row.id),
+    type: row.type as ContentItem['type'],
+    title: String(row.title),
+    ...(typeof row.body === 'string' ? { body: row.body } : {}),
+    ...(typeof row.title_he === 'string' ? { titleHe: row.title_he } : {}),
+    mediaIds: asArray<string>(row.media_ids),
+    ...(typeof row.qr_url === 'string' ? { qrUrl: row.qr_url } : {}),
+    ...(typeof row.starts_at === 'string' ? { startsAt: row.starts_at } : {}),
+    ...(typeof row.ends_at === 'string' ? { endsAt: row.ends_at } : {}),
+    ...(asArray<number>(row.weekdays).length ? { weekdays: asArray<number>(row.weekdays) } : {}),
+    ...(asArray<NonNullable<ContentItem['timeWindows']>[number]>(row.time_windows).length
+      ? {
+          timeWindows: asArray<NonNullable<ContentItem['timeWindows']>[number]>(row.time_windows),
+        }
+      : {}),
+    shabbatVisibility: row.shabbat_visibility === 'hide' ? 'hide' : 'show',
+    isCommercial: row.is_commercial === true,
+    priority: Number(row.priority ?? 0),
+    durationSec: Number(row.duration_sec ?? 20),
+    status: row.status === 'ready' || row.status === 'archived' ? row.status : 'draft',
+  };
+}
+
+export function contentToRow(item: AdminContentItem) {
+  return {
+    id: item.id,
+    type: item.type,
+    title: item.title,
+    body: item.body ?? null,
+    title_he: item.titleHe ?? null,
+    media_ids: item.mediaIds,
+    qr_url: item.qrUrl ?? null,
+    starts_at: item.startsAt ?? null,
+    ends_at: item.endsAt ?? null,
+    weekdays: item.weekdays ?? [],
+    time_windows: item.timeWindows ?? [],
+    shabbat_visibility: item.shabbatVisibility,
+    is_commercial: item.isCommercial,
+    priority: item.priority,
+    duration_sec: item.durationSec,
+    status: item.status,
+  };
+}
+
 export class SupabaseRepository implements AdminRepository {
   readonly mode = 'supabase' as const;
 
@@ -59,59 +161,11 @@ export class SupabaseRepository implements AdminRepository {
     for (const result of [rulesResult, exceptionsResult, contentResult, layoutResult]) {
       databaseError(result.error);
     }
-    const rules = (rulesResult.data ?? []).map((value) => {
-      const row = asRecord(value);
-      return {
-        id: String(row.id),
-        office: String(row.office),
-        time: typeof row.time === 'string' ? row.time : null,
-        ...(typeof row.valid_from === 'string' ? { validFrom: row.valid_from } : {}),
-        ...(typeof row.valid_to === 'string' ? { validTo: row.valid_to } : {}),
-        weekdays: asArray<number>(row.weekdays),
-        dayKinds: asArray<string>(row.day_kinds),
-        priority: Number(row.priority ?? 0),
-        active: row.active === true,
-        status: row.status === 'confirmed' ? 'confirmed' : 'to_confirm',
-      } satisfies MinyanRule;
-    });
-    const exceptions = (exceptionsResult.data ?? []).map((value) => {
-      const row = asRecord(value);
-      return {
-        id: String(row.id),
-        date: String(row.local_date),
-        office: String(row.office),
-        time: typeof row.time === 'string' ? row.time : null,
-        cancelled: row.cancelled === true,
-      } satisfies MinyanException;
-    });
-    const content = (contentResult.data ?? []).map((value) => {
-      const row = asRecord(value);
-      return {
-        id: String(row.id),
-        type: row.type as ContentItem['type'],
-        title: String(row.title),
-        ...(typeof row.body === 'string' ? { body: row.body } : {}),
-        ...(typeof row.title_he === 'string' ? { titleHe: row.title_he } : {}),
-        mediaIds: asArray<string>(row.media_ids),
-        ...(typeof row.qr_url === 'string' ? { qrUrl: row.qr_url } : {}),
-        ...(typeof row.starts_at === 'string' ? { startsAt: row.starts_at } : {}),
-        ...(typeof row.ends_at === 'string' ? { endsAt: row.ends_at } : {}),
-        ...(asArray<number>(row.weekdays).length
-          ? { weekdays: asArray<number>(row.weekdays) }
-          : {}),
-        ...(asArray<NonNullable<ContentItem['timeWindows']>[number]>(row.time_windows).length
-          ? {
-              timeWindows: asArray<NonNullable<ContentItem['timeWindows']>[number]>(
-                row.time_windows,
-              ),
-            }
-          : {}),
-        shabbatVisibility: row.shabbat_visibility === 'hide' ? 'hide' : 'show',
-        isCommercial: row.is_commercial === true,
-        priority: Number(row.priority ?? 0),
-        durationSec: Number(row.duration_sec ?? 20),
-      } satisfies ContentItem;
-    });
+    const rules = (rulesResult.data ?? []).map((value) => minyanRuleFromRow(asRecord(value)));
+    const exceptions = (exceptionsResult.data ?? []).map((value) =>
+      minyanExceptionFromRow(asRecord(value)),
+    );
+    const content = (contentResult.data ?? []).map((value) => contentFromRow(asRecord(value)));
     const layoutRow = asRecord(layoutResult.data);
     const options = asRecord(layoutRow.options);
     const layout: Layout = layoutResult.data
@@ -126,43 +180,9 @@ export class SupabaseRepository implements AdminRepository {
   }
 
   async saveDraft(draft: AdminDraft): Promise<void> {
-    const rules = draft.rules.map((rule) => ({
-      id: rule.id,
-      office: rule.office,
-      time: rule.time,
-      valid_from: rule.validFrom ?? null,
-      valid_to: rule.validTo ?? null,
-      weekdays: rule.weekdays ?? [],
-      day_kinds: rule.dayKinds ?? [],
-      priority: rule.priority,
-      active: rule.active,
-      status: rule.status,
-    }));
-    const exceptions = draft.exceptions.map((item) => ({
-      ...(item.id ? { id: item.id } : {}),
-      local_date: item.date,
-      office: item.office,
-      time: item.time,
-      cancelled: item.cancelled,
-    }));
-    const content = draft.content.map((item) => ({
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      body: item.body ?? null,
-      title_he: item.titleHe ?? null,
-      media_ids: item.mediaIds,
-      qr_url: item.qrUrl ?? null,
-      starts_at: item.startsAt ?? null,
-      ends_at: item.endsAt ?? null,
-      weekdays: item.weekdays ?? [],
-      time_windows: item.timeWindows ?? [],
-      shabbat_visibility: item.shabbatVisibility,
-      is_commercial: item.isCommercial,
-      priority: item.priority,
-      duration_sec: item.durationSec,
-      status: 'ready',
-    }));
+    const rules = draft.rules.map(minyanRuleToRow);
+    const exceptions = draft.exceptions.map(minyanExceptionToRow);
+    const content = draft.content.map(contentToRow);
 
     const { data: existingRules, error: rulesReadError } = await this.client
       .from('minyan_rules')
@@ -207,7 +227,7 @@ export class SupabaseRepository implements AdminRepository {
 
     const { data: existingContent, error: contentReadError } = await this.client
       .from('content_items')
-      .select('id,status');
+      .select('id');
     databaseError(contentReadError);
     const retainedContentIds = new Set(content.map((row) => row.id));
     const staleContentIds = (existingContent ?? [])
@@ -218,16 +238,9 @@ export class SupabaseRepository implements AdminRepository {
       databaseError(error);
     }
     if (content.length) {
-      const statuses = new Map<string, string>(
-        (existingContent ?? []).map((row) => [row.id, row.status]),
-      );
-      const savedContent = content.map((row) => ({
-        ...row,
-        status: statuses.get(row.id) ?? 'ready',
-      }));
       const { error } = await this.client
         .from('content_items')
-        .upsert(savedContent, { onConflict: 'id' });
+        .upsert(content, { onConflict: 'id' });
       databaseError(error);
     }
     const { error } = await this.client.from('layout_draft').upsert(

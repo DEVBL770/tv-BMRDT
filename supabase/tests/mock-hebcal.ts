@@ -34,6 +34,12 @@ const server = createServer((request, response) => {
   const start = url.searchParams.get('start') ?? '2026-09-01';
   const end = url.searchParams.get('end') ?? start;
   if (url.pathname === '/hebcal') {
+    if (url.searchParams.get('lg') !== 'fr') {
+      response
+        .writeHead(400, { 'content-type': 'application/json' })
+        .end('{"error":"expected_lg_fr"}');
+      return;
+    }
     const items =
       mode === 'invalid'
         ? 'invalid'

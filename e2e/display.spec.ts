@@ -149,27 +149,28 @@ test('admin mobile 390×844 : horaires, annonces et aperçu avec captures', asyn
 
   await page.goto('/admin?demo=1');
   await page.getByRole('button', { name: 'Horaires', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Résultat résolu · 14 jours' })).toBeVisible();
-  const confirmationPadding = await page
-    .locator('.schedule-card .rule-line small')
+  await expect(page.getByRole('heading', { name: 'Horaires résolus · 14 jours' })).toBeVisible();
+  const ruleActionHeight = await page
+    .getByRole('button', { name: 'Modifier', exact: true })
     .first()
-    .evaluate((element) => Number.parseFloat(getComputedStyle(element).paddingTop));
-  expect(confirmationPadding).toBeGreaterThan(0);
+    .evaluate((element) => element.getBoundingClientRect().height);
+  expect(ruleActionHeight).toBeGreaterThanOrEqual(44);
   await page.screenshot({
     path: resolve('artifacts/screenshots/admin-iphone-horaires.png'),
     fullPage: true,
   });
 
-  await page.getByRole('button', { name: 'Annonces', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Nouvelle annonce' })).toBeVisible();
+  await page.getByRole('button', { name: 'Contenus', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Ajouter un contenu' })).toBeVisible();
   await page.screenshot({
     path: resolve('artifacts/screenshots/admin-iphone-annonces.png'),
     fullPage: true,
   });
 
   await page.getByRole('button', { name: 'Écran', exact: true }).click();
-  await page.getByRole('button', { name: 'Aperçu' }).click();
-  await expect(page.getByText('BROUILLON — non publié')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Aperçu fidèle' })).toBeVisible();
+  await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();
+  await expect(page.getByText('BROUILLON', { exact: true })).toBeVisible();
   await page.screenshot({
     path: resolve('artifacts/screenshots/admin-iphone-apercu.png'),
     fullPage: true,

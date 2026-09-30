@@ -6,7 +6,7 @@ Référence fonctionnelle : cahier des charges original + « Architecture V1 » 
 
 ```
 GitHub (tv-BMRDT) ──CI──► Hébergement statique : /display  /admin
-                                   │ shell PWA ; admin minimal et player connecté
+                                   │ shell PWA ; console admin et player connecté
                                    ▼
 Supabase Free : Auth (1 admin) · Postgres + RLS · Storage privé `media` · Edge Functions
                                    │ serveur uniquement
@@ -160,8 +160,13 @@ de fréquence ; aucune erreur technique affichée sur la TV ; CORS limité aux o
 `_headers` Cloudflare. Les versions publiées sont immuables ; `purge_old_versions()` ne peut
 supprimer que les versions hors rétention et jamais la courante.
 
-Le frontend comprend la connexion admin minimale et le player PWA connecté/offline. L’UI de
-gestion complète reste hors périmètre de l’étape 6.
+Le frontend admin utilise `SupabaseRepository` en mode connecté et conserve
+`DemoRepository` sans backend. Les routes `/admin` et `/display` sont chargées
+séparément ; PDF.js n’est importé que lors d’un traitement PDF dans la console.
+L’aperçu admin compile le brouillon par `previewPackage` et réutilise le même
+composant `Display` que l’écran publié. Les uploads passent par URL signée puis
+`finalizeUpload` côté Edge Function ; les pages PDF sont des médias
+`pdf_page` liés à leur original.
 
 ## 8. Coûts et quotas
 

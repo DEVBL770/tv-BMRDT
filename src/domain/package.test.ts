@@ -7,8 +7,8 @@ describe('schéma PublishedPackage', () => {
     expect(PublishedPackageSchema.parse(testPackage()).schemaVersion).toBe(1);
   });
 
-  it('refuse un sponsor non commercial et une date inversée', () => {
-    expect(() =>
+  it('accepte un sponsor non commercial et refuse une date inversée ou un QR non sécurisé', () => {
+    expect(
       ContentItemSchema.parse({
         id: 'sponsor',
         type: 'sponsor',
@@ -18,8 +18,8 @@ describe('schéma PublishedPackage', () => {
         isCommercial: false,
         priority: 0,
         durationSec: 10,
-      }),
-    ).toThrow();
+      }).isCommercial,
+    ).toBe(false);
     expect(() =>
       ContentItemSchema.parse({
         id: 'news',
@@ -28,6 +28,19 @@ describe('schéma PublishedPackage', () => {
         mediaIds: [],
         startsAt: '2026-10-03T00:00:00Z',
         endsAt: '2026-10-02T00:00:00Z',
+        shabbatVisibility: 'show',
+        isCommercial: false,
+        priority: 0,
+        durationSec: 10,
+      }),
+    ).toThrow();
+    expect(() =>
+      ContentItemSchema.parse({
+        id: 'qr',
+        type: 'qr',
+        title: 'QR',
+        mediaIds: [],
+        qrUrl: 'http://example.com',
         shabbatVisibility: 'show',
         isCommercial: false,
         priority: 0,

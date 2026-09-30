@@ -15,6 +15,7 @@ type SettingsRow = DatabaseRow & {
   approved_at: string | null;
   site_name: string;
   site_address: string;
+  logo_media_id: string | null;
   sponsor_margin_before_min: number;
   sponsor_margin_after_min: number;
   hide_commercial_on_chol_hamoed: boolean;
@@ -33,6 +34,7 @@ type MinyanRuleRow = DatabaseRow & {
   priority: number;
   active: boolean;
   status: 'to_confirm' | 'confirmed';
+  cancelled: boolean;
 };
 
 type MinyanExceptionRow = DatabaseRow & {
@@ -268,7 +270,11 @@ function toDay(
     ...(parashaEvent
       ? {
           parasha: {
-            fr: normalizedLabel(parashaEvent.title.replace(/^Parashat?\s*/i, 'Paracha ')),
+            fr: normalizedLabel(
+              parashaEvent.title
+                .replace(/^Parashat?\s*/i, 'Paracha ')
+                .replace(/^Parachah\s*/i, 'Paracha '),
+            ),
             ...(parashaEvent.titleHe ? { he: stripHebrewMarks(parashaEvent.titleHe) } : {}),
           },
         }
@@ -485,6 +491,7 @@ function rulesFromSnapshot(snapshot: Snapshot) {
     id: row.id,
     office: row.office,
     time: row.time,
+    cancelled: row.cancelled,
     ...(row.valid_from ? { validFrom: row.valid_from } : {}),
     ...(row.valid_to ? { validTo: row.valid_to } : {}),
     weekdays: row.weekdays ?? [],
@@ -519,11 +526,12 @@ function layoutFromSnapshot(snapshot: Snapshot): Layout {
 async function referencedMedia(
   client: BackendClient,
   content: ContentRow[],
+  additionalIds: string[] = [],
 ): Promise<{
   media: Array<{ id: string; sha256: string; bytes: number; mime: string }>;
   ids: string[];
 }> {
-  const ids = [...new Set(content.flatMap((item) => item.media_ids ?? []))];
+  const ids = [...new Set([...content.flatMap((item) => item.media_ids ?? []), ...additionalIds])];
   if (!ids.length) return { media: [], ids: [] };
   const { data, error } = await client
     .from('media_assets')
@@ -563,8 +571,12 @@ export async function compileSnapshot(
   now = new Date(),
 ) {
   const readyContentRows = snapshot.content.filter((item) => item.status === 'ready');
-  const { media, ids } = await referencedMedia(client, readyContentRows);
   const settings = snapshot.settings;
+  const { media, ids } = await referencedMedia(
+    client,
+    readyContentRows,
+    settings.logo_media_id ? [settings.logo_media_id] : [],
+  );
   const methods = {
     status: settings.religious_method_status,
     params: settings.religious_method_params ?? {},
@@ -578,6 +590,7 @@ export async function compileSnapshot(
         address: settings.site_address,
         timezone: 'Europe/Paris' as const,
         attribution: ['Calendrier : Hebcal.com (CC BY 4.0)', 'Météo : MET Norway'],
+        ...(settings.logo_media_id ? { logoMediaId: settings.logo_media_id } : {}),
       },
       methods,
       sponsorMargin: {
@@ -707,7 +720,13 @@ export async function refreshCalendar(
   const start = addLocalDays(today, -7);
   const end = addLocalDays(today, 400);
   const baseUrl = Deno.env.get('HEBCAL_BASE_URL') ?? 'https://www.hebcal.com';
-  const provider = new HebcalProvider({ baseUrl });
+  const { data: settings, error: settingsError } = await client
+    .from('settings')
+    .select('rambam_cycle')
+    .eq('id', true)
+    .maybeSingle();
+  resultError(settingsError);
+  const provider = new HebcalProvider({ baseUrl, dr1: settings?.rambam_cycle === 'dr1' });
   const [
     { data: events, provenance: calendarProvenance },
     { data: zmanim, provenance: zmanimProvenance },

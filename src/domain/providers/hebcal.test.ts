@@ -122,6 +122,7 @@ describe('HebcalProvider avec réponses enregistrées', () => {
     expect(urls).toHaveLength(3);
     for (const url of urls) {
       expect(url.searchParams.get('tzid')).toBe('Europe/Paris');
+      expect(url.searchParams.get('lg')).toBe('fr');
       expect(url.searchParams.get('latitude')).toBe('48.8885');
       expect(url.searchParams.get('longitude')).toBe('2.3821');
       expect(url.searchParams.get('i')).toBe('off');

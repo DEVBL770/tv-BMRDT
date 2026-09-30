@@ -171,7 +171,7 @@ function ContentCard({
   mediaUrls?: Record<string, string> | undefined;
   mediaMimes?: Record<string, string>;
 }) {
-  const imageId = item.mediaIds.find(
+  const imageIds = item.mediaIds.filter(
     (id) => mediaUrls?.[id] && mediaMimes?.[id]?.startsWith('image/'),
   );
   return (
@@ -181,8 +181,12 @@ function ContentCard({
       </span>
       <h3>{item.title}</h3>
       {item.body ? <p>{item.body}</p> : null}
-      {imageId && mediaUrls ? (
-        <img className="content-media" src={mediaUrls[imageId]} alt={item.title} />
+      {imageIds.length ? (
+        <div className="content-media-gallery" aria-label="Pages du document">
+          {imageIds.map((id) => (
+            <img className="content-media" key={id} src={mediaUrls![id]} alt={item.title} />
+          ))}
+        </div>
       ) : null}
       {item.titleHe ? (
         <div className="content-hebrew" lang="he" dir="rtl">
@@ -397,7 +401,17 @@ function DisplayCanvas({
       <div className="display-canvas" style={{ '--canvas-scale': scale } as CanvasStyle}>
         <header className="display-header" data-zone="header">
           <div className="brand-lockup">
-            <div className="brand-name">Beth Menahem</div>
+            {packageData.site.logoMediaId &&
+            mediaUrls?.[packageData.site.logoMediaId] &&
+            mediaMimes[packageData.site.logoMediaId]?.startsWith('image/') ? (
+              <img
+                className="brand-logo"
+                src={mediaUrls[packageData.site.logoMediaId]}
+                alt={packageData.site.name}
+              />
+            ) : (
+              <div className="brand-name">{packageData.site.name}</div>
+            )}
             <div className="brand-hebrew" lang="he" dir="rtl">
               <bdi dir="rtl">בית מנחם</bdi>
             </div>

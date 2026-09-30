@@ -613,7 +613,7 @@ describe.sequential('Supabase local integration', () => {
     const bereshit = days.find(({ date }) => date === '2026-10-10');
     expect(holHamoed?.hebrew.he).toBe('י״ט תשרי תשפ״ז');
     expect(bereshit?.parasha).toMatchObject({
-      fr: expect.stringMatching(/^Paracha \S/u),
+      fr: 'Paracha Berechit',
       he: 'פרשת בראשית',
     });
   });
