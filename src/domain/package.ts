@@ -64,6 +64,10 @@ const StudyReferenceSchema = z.object({
   reference: z.string(),
   url: z.url().optional(),
 });
+const StudyTitleSchema = z.object({
+  fr: z.string().optional(),
+  he: z.string().optional(),
+});
 
 export const DaySchema = z.object({
   date: DateSchema,
@@ -78,12 +82,15 @@ export const DaySchema = z.object({
   parasha: z.object({ fr: z.string(), he: z.string().optional() }).optional(),
   holidays: z.array(z.string()),
   holidaysHe: z.array(z.string()).optional(),
-  holidayKinds: z.array(z.enum(['yomtov', 'chol_hamoed'])).optional(),
+  holidayKinds: z.array(z.enum(['erev_yomtov', 'yomtov', 'chol_hamoed'])).optional(),
+  yomtovLabels: z.array(z.object({ fr: z.string(), he: z.string().optional() })).optional(),
+  cholHamoedLabel: z.object({ fr: z.string(), he: z.string().optional() }).optional(),
+  specialShabbat: z.object({ fr: z.string(), he: z.string().optional() }).optional(),
   roshHodesh: z.string().optional(),
   omer: z.number().int().positive().optional(),
   study: z.object({
-    dafYomi: z.string().optional(),
-    rambam: z.string().optional(),
+    dafYomi: z.object({ fr: z.string(), he: z.string().optional() }).optional(),
+    rambam: StudyTitleSchema.optional(),
     hayomYom: StudyReferenceSchema.optional(),
     tanya: StudyReferenceSchema.optional(),
   }),
@@ -163,6 +170,7 @@ export const PublishedPackageSchema = z.object({
     beforeMinutes: z.number().nonnegative(),
     afterMinutes: z.number().nonnegative(),
   }),
+  hideCommercialOnCholHamoed: z.boolean().default(false),
 });
 
 export type PublishedPackage = z.infer<typeof PublishedPackageSchema>;

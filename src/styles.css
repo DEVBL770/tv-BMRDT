@@ -1511,6 +1511,9 @@ button {
 
   .rule-line small {
     grid-column: 1 / -1;
+    margin-top: 4px;
+    padding-top: 4px;
+    line-height: 1.45;
     text-align: left;
   }
 
@@ -1525,4 +1528,544 @@ button {
   .mobile-nav .admin-nav button > span:last-child {
     font-size: 8px;
   }
+}
+
+.display-shell:not(.display-embedded) {
+  background:
+    radial-gradient(ellipse at 8% 10%, rgb(255 255 255 / 85%), transparent 46%),
+    linear-gradient(135deg, #fbf7ef 0%, #fffdf8 50%, #f7efe1 100%);
+}
+
+.display-shell:not(.display-embedded)[data-theme='shabbat'] {
+  background:
+    radial-gradient(ellipse at 86% 12%, rgb(245 218 156 / 27%), transparent 36%),
+    linear-gradient(130deg, #f8efdd 0%, #fff8e9 48%, #efdfbd 100%);
+}
+
+.display-shell:not(.display-embedded)[data-theme='yomtov'] {
+  background:
+    radial-gradient(ellipse at 92% 7%, rgb(226 190 111 / 30%), transparent 38%),
+    linear-gradient(130deg, #f8eedc 0%, #fff8e8 52%, #eddfc3 100%);
+}
+
+.display-shell:not(.display-embedded) .display-canvas {
+  padding: 62px 92px 38px;
+}
+
+.display-shell:not(.display-embedded) .display-header {
+  top: 62px;
+  min-height: 208px;
+  padding-bottom: 24px;
+  grid-template-columns: 0.94fr 1.3fr 1fr;
+}
+
+.display-shell:not(.display-embedded) .brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.display-shell:not(.display-embedded) .brand-name {
+  font-size: 72px;
+}
+
+.display-shell:not(.display-embedded) .brand-hebrew {
+  margin: 0;
+  font-size: 38px;
+}
+
+.display-shell:not(.display-embedded) .clock {
+  font-size: 118px;
+}
+
+.display-shell:not(.display-embedded) .civil-date {
+  font-size: 34px;
+}
+
+.display-shell:not(.display-embedded) .hebrew-date {
+  margin-top: 8px;
+  gap: 5px;
+  font-size: 30px;
+}
+
+.display-shell:not(.display-embedded) .hebrew-date-he {
+  font-family: 'Frank Ruhl Libre', serif;
+  line-height: 1.15;
+}
+
+.display-shell:not(.display-embedded) .hebrew-transliteration {
+  margin: 0;
+  color: #725a3d;
+  font-size: 24px;
+}
+
+.display-shell:not(.display-embedded) .header-aside {
+  align-items: flex-end;
+  gap: 9px;
+}
+
+.display-shell:not(.display-embedded) .b-h {
+  font-size: 24px;
+}
+
+.display-shell:not(.display-embedded) .weather {
+  gap: 11px;
+}
+
+.display-shell:not(.display-embedded) .weather-mark {
+  width: 46px;
+  height: 46px;
+}
+
+.display-shell:not(.display-embedded) .weather strong {
+  font-size: 26px;
+}
+
+.display-shell:not(.display-embedded) .weather small {
+  font-size: 22px;
+}
+
+.display-shell:not(.display-embedded) .day-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  max-width: 470px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgb(255 253 248 / 70%);
+  font-size: 27px;
+  line-height: 1.1;
+  text-align: right;
+}
+
+.display-shell:not(.display-embedded) .day-badge span[lang='he'] {
+  font-size: 26px;
+}
+
+.display-shell:not(.display-embedded)[data-theme='yomtov'] .day-badge {
+  border-color: #a98132;
+  background: rgb(255 247 222 / 90%);
+  color: #563815;
+  font-weight: 700;
+}
+
+.display-shell:not(.display-embedded) .shabbat-candle {
+  display: none;
+}
+
+.display-shell:not(.display-embedded)[data-theme='shabbat'] .shabbat-candle {
+  display: block;
+  width: 32px;
+  height: 42px;
+  margin: 0 5px;
+  color: #b8913a;
+}
+
+.display-shell:not(.display-embedded) .display-grid {
+  top: 296px;
+  right: 92px;
+  bottom: 64px;
+  left: 92px;
+  grid-template-columns: 0.94fr 1.08fr 1fr;
+  gap: 30px;
+}
+
+.display-shell:not(.display-embedded) .display-zone {
+  min-width: 0;
+  min-height: 0;
+  padding-right: 25px;
+}
+
+.display-shell:not(.display-embedded) .display-zone:last-child {
+  padding-right: 0;
+}
+
+.display-shell:not(.display-embedded) .section-heading {
+  min-height: 58px;
+  margin-bottom: 16px;
+  gap: 15px;
+}
+
+.display-shell:not(.display-embedded) .section-heading > span {
+  font-size: 22px;
+}
+
+.display-shell:not(.display-embedded) .section-heading h2 {
+  font-size: 42px;
+}
+
+.display-shell:not(.display-embedded) .office-zone,
+.display-shell:not(.display-embedded) .community-zone {
+  display: flex;
+  flex-direction: column;
+}
+
+.display-shell:not(.display-embedded) .office-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px 0;
+}
+
+.display-shell:not(.display-embedded) .office-label {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.display-shell:not(.display-embedded) .office-time {
+  font-size: 108px;
+  line-height: 1;
+}
+
+.display-shell:not(.display-embedded) .office-status {
+  flex: 0 0 auto;
+  margin: 15px 0 0;
+  font-size: 24px;
+}
+
+.display-shell:not(.display-embedded) .office-cancelled .office-time {
+  font-size: 42px;
+}
+
+.display-shell:not(.display-embedded) .zmanim-list {
+  margin: 0;
+}
+
+.display-shell:not(.display-embedded) .zman-row {
+  min-height: 66px;
+  padding: 10px 0;
+  font-size: 34px;
+}
+
+.display-shell:not(.display-embedded) .zman-row strong {
+  font-size: 46px;
+}
+
+.display-shell:not(.display-embedded) .shabbat-feature {
+  margin-top: 24px;
+  padding: 20px 0 0;
+  border-top: 1px solid rgb(166 124 82 / 32%);
+}
+
+.display-shell:not(.display-embedded) .mini-rule {
+  width: 52px;
+  height: 3px;
+  margin-bottom: 12px;
+}
+
+.display-shell:not(.display-embedded) .feature-title {
+  font-size: 24px;
+}
+
+.display-shell:not(.display-embedded) .period-name {
+  margin-top: 5px;
+  font-size: 42px;
+  line-height: 1.05;
+}
+
+.display-shell:not(.display-embedded) .period-name-he {
+  margin-top: 4px;
+  color: #725a3d;
+  font-family: 'Frank Ruhl Libre', serif;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.display-shell:not(.display-embedded) .period-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  margin-top: 13px;
+  font-size: 44px;
+}
+
+.display-shell:not(.display-embedded) .period-times strong {
+  margin-left: 6px;
+  font-size: 44px;
+}
+
+.display-shell:not(.display-embedded) .shabbat-feature small,
+.display-shell:not(.display-embedded) .method-note {
+  margin-top: 10px;
+  font-size: 22px;
+}
+
+.display-shell:not(.display-embedded) .community-zone .section-heading {
+  margin-bottom: 14px;
+}
+
+.display-shell:not(.display-embedded) .content-card {
+  min-height: 190px;
+  padding: 24px 26px;
+  border-radius: 8px;
+}
+
+.display-shell:not(.display-embedded) .content-card::before {
+  top: 22px;
+  bottom: 22px;
+  width: 4px;
+}
+
+.display-shell:not(.display-embedded) .eyebrow {
+  font-size: 22px;
+}
+
+.display-shell:not(.display-embedded) .content-card h3 {
+  margin-top: 8px;
+  font-size: 50px;
+  line-height: 1.05;
+}
+
+.display-shell:not(.display-embedded) .content-card p {
+  margin-top: 10px;
+  font-size: 30px;
+  line-height: 1.3;
+}
+
+.display-shell:not(.display-embedded) .content-hebrew {
+  margin-top: 8px;
+  font-size: 30px;
+}
+
+.display-shell:not(.display-embedded) .sponsor-note {
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 15px;
+  font-size: 22px;
+}
+
+.display-shell:not(.display-embedded) .sponsor-note strong {
+  font-size: 25px;
+}
+
+.display-shell:not(.display-embedded) .study-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 178px;
+  grid-template-rows: auto 1fr;
+  gap: 10px 15px;
+  flex: 1;
+  min-height: 250px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgb(184 145 58 / 48%);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: rgb(255 253 248 / 78%);
+  font-size: 24px;
+}
+
+.display-shell:not(.display-embedded) .study-title {
+  grid-column: 1 / -1;
+  color: #4c3826;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.display-shell:not(.display-embedded) .study-references {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.display-shell:not(.display-embedded) .study-reference {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+  color: #665644;
+  line-height: 1.05;
+}
+
+.display-shell:not(.display-embedded) .study-reference > span:first-child {
+  grid-row: 1 / span 2;
+  color: #85683f;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.display-shell:not(.display-embedded) .study-reference strong,
+.display-shell:not(.display-embedded) .study-reference > span[lang='he'] {
+  grid-column: 2;
+  color: #352518;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.display-shell:not(.display-embedded) .study-reference strong {
+  grid-row: 1;
+}
+
+.display-shell:not(.display-embedded) .study-reference > span[lang='he'] {
+  grid-row: 2;
+}
+
+.display-shell:not(.display-embedded) .study-qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.display-shell:not(.display-embedded) .study-qr-panel > span {
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.display-shell:not(.display-embedded) .display-qr {
+  width: 170px;
+  height: 170px;
+}
+
+.display-shell:not(.display-embedded) .display-footer {
+  bottom: 17px;
+  font-size: 16px;
+}
+
+.display-shell:not(.display-embedded) .unknown-zone p {
+  font-size: 34px;
+}
+
+.display-shell:not(.display-embedded) .playlist-area {
+  top: 296px;
+  right: 92px;
+  bottom: 64px;
+  left: 92px;
+}
+
+.display-shell:not(.display-embedded) .playlist-schedule {
+  grid-template-columns: 0.94fr 1.08fr;
+  gap: 55px;
+  padding: 25px 35px;
+}
+
+.display-shell:not(.display-embedded) .playlist-schedule .office-row {
+  max-width: none;
+  padding: 20px 0;
+}
+
+.display-shell:not(.display-embedded) .playlist-schedule .office-label {
+  font-size: 56px;
+}
+
+.display-shell:not(.display-embedded) .playlist-schedule .office-time {
+  font-size: 108px;
+}
+
+.display-shell:not(.display-embedded) .playlist-schedule .zman-row {
+  max-width: none;
+  min-height: 72px;
+  padding: 15px 0;
+  font-size: 34px;
+}
+
+.display-shell:not(.display-embedded) .playlist-schedule .zman-row strong {
+  font-size: 46px;
+}
+
+.display-shell:not(.display-embedded) .playlist-schedule .shabbat-feature {
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.display-shell:not(.display-embedded) .playlist-content {
+  gap: 45px;
+  padding: 35px 70px;
+}
+
+.display-shell:not(.display-embedded) .playlist-content .content-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 70%;
+  height: 70%;
+  padding: 52px;
+}
+
+.display-shell:not(.display-embedded) .playlist-content .content-card h3 {
+  font-size: 70px;
+}
+
+.display-shell:not(.display-embedded) .playlist-content .content-card p {
+  margin-top: 20px;
+  font-size: 38px;
+}
+
+.display-shell:not(.display-embedded) .playlist-content .display-qr {
+  width: 240px;
+  height: 240px;
+}
+
+.display-shell:not(.display-embedded) .playlist-shabbat,
+.display-shell:not(.display-embedded) .playlist-study {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  padding: 40px;
+}
+
+.display-shell:not(.display-embedded) .playlist-shabbat .shabbat-feature {
+  width: 70%;
+  margin: 0;
+  padding: 50px;
+  border: 1px solid rgb(166 124 82 / 32%);
+  border-radius: 12px;
+  background: rgb(255 253 248 / 82%);
+  text-align: center;
+}
+
+.display-shell:not(.display-embedded) .playlist-shabbat .mini-rule {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.display-shell:not(.display-embedded) .playlist-shabbat .period-times {
+  justify-content: center;
+}
+
+.display-shell:not(.display-embedded) .playlist-study .study-feature {
+  width: 70%;
+  height: 70%;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 22px 30px;
+  padding: 42px;
+}
+
+.display-shell:not(.display-embedded) .playlist-study .study-title {
+  font-size: 54px;
+}
+
+.display-shell:not(.display-embedded) .playlist-study .study-reference > span:first-child {
+  font-size: 30px;
+}
+
+.display-shell:not(.display-embedded) .playlist-study .study-reference strong,
+.display-shell:not(.display-embedded) .playlist-study .study-reference > span[lang='he'] {
+  font-size: 34px;
+}
+
+.display-shell:not(.display-embedded) .playlist-study .display-qr {
+  width: 240px;
+  height: 240px;
+}
+
+.display-shell:not(.display-embedded) .display-empty {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 80px;
+  color: #5d452d;
+  font-size: 32px;
+  text-align: center;
 }

@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import QRCode from 'qrcode';
-import demoPackageData from '../fixtures/demo-package.json';
 import { hebrewDateAt, religiousStateAt, themeFor } from '../domain/religious';
 import { currentSlideAt } from '../domain/playlist';
 import { visibleContent } from '../domain/filtering';
 import type { ContentItem, Day, PublishedPackage } from '../domain/package';
 import { instantFromLocal, localDateOf } from '../domain/time';
-
-const demoPackage = demoPackageData as PublishedPackage;
+import { loadDemoPackage } from '../demoPackage';
 
 type DisplayProps = {
   packageData?: PublishedPackage;
@@ -144,7 +142,7 @@ function QRImage({ url }: { url: string }) {
     };
   }, [url]);
   return source ? (
-    <img className="display-qr" src={source} alt="Code QR pour l’étude quotidienne" />
+    <img className="display-qr" src={source} alt="Code QR pour l’étude du jour" />
   ) : null;
 }
 
@@ -183,28 +181,88 @@ function contentLabel(type: ContentItem['type']): string {
   return labels[type];
 }
 
-function DayBadge({ day }: { day: Day | undefined }) {
-  if (!day) return <div className="day-badge">Paris · 19e</div>;
-  const label = day.parasha?.fr ?? day.holidays[0] ?? day.roshHodesh;
-  if (!label) return <div className="day-badge">Paris · 19e</div>;
-  const labelHe = day.parasha?.he ?? (label === day.holidays[0] ? day.holidaysHe?.[0] : undefined);
+function DayBadge({
+  day,
+  period,
+  festive,
+}: {
+  day: Day | undefined;
+  period: PublishedPackage['religiousPeriods'][number] | undefined;
+  festive: boolean;
+}) {
+  if (!day) return null;
+  const erevIndex = day.holidays.findIndex((holiday) => /^Erev\b/i.test(holiday));
+  const label =
+    festive && period
+      ? { fr: period.label, he: period.labelHe }
+      : (day.yomtovLabels?.[0] ??
+        day.cholHamoedLabel ??
+        day.specialShabbat ??
+        (erevIndex >= 0
+          ? { fr: day.holidays[erevIndex], he: day.holidaysHe?.[erevIndex] }
+          : undefined) ??
+        (day.roshHodesh ? { fr: day.roshHodesh } : undefined) ??
+        (day.parasha ? { fr: day.parasha.fr, he: day.parasha.he } : undefined));
+  if (!label) return null;
   return (
     <div className="day-badge">
-      <span>{label}</span>
-      {labelHe ? (
+      <span>{label.fr}</span>
+      {label.he ? (
         <span lang="he" dir="rtl">
-          <bdi dir="rtl">{labelHe}</bdi>
+          <bdi dir="rtl">{label.he}</bdi>
         </span>
       ) : null}
     </div>
   );
 }
 
-export function Display({
-  packageData = demoPackage,
-  previewInstant,
-  previewMode = false,
-}: DisplayProps) {
+export function Display({ packageData, previewInstant, previewMode = false }: DisplayProps) {
+  const query = new URLSearchParams(window.location.search);
+  const useDemoPackage =
+    !packageData &&
+    (previewMode ||
+      import.meta.env.VITE_DEMO_MODE === 'true' ||
+      query.get('demo') === '1' ||
+      query.get('preview') === '1');
+  const [loadedDemoPackage, setLoadedDemoPackage] = useState<PublishedPackage>();
+  const [loadError, setLoadError] = useState(false);
+  useEffect(() => {
+    if (!useDemoPackage) return;
+    let active = true;
+    void loadDemoPackage()
+      .then((loaded) => {
+        if (active) setLoadedDemoPackage(loaded);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [useDemoPackage]);
+
+  const data = packageData ?? loadedDemoPackage;
+  if (!data) {
+    return (
+      <div className="display-shell display-loading" data-theme="weekday" data-state="unknown">
+        <div className="display-empty">
+          {loadError ? 'Paquet indisponible' : 'Chargement des informations…'}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <DisplayCanvas
+      packageData={data}
+      {...(previewInstant ? { previewInstant } : {})}
+      previewMode={previewMode}
+    />
+  );
+}
+
+type DisplayCanvasProps = Omit<DisplayProps, 'packageData'> & { packageData: PublishedPackage };
+
+function DisplayCanvas({ packageData, previewInstant, previewMode = false }: DisplayCanvasProps) {
   const shell = useRef<HTMLDivElement>(null);
   const scale = useCanvasScale(shell);
   const query = new URLSearchParams(window.location.search);
@@ -223,7 +281,7 @@ export function Display({
   const activeContent = currentContentAt(
     visibleItems.filter((item) =>
       isKnown
-        ? !item.isCommercial
+        ? !item.isCommercial && item.type !== 'qr'
         : !item.isCommercial && (item.type === 'announcement' || item.type === 'urgent'),
     ),
     now,
@@ -252,19 +310,18 @@ export function Display({
             <div className="brand-hebrew" lang="he" dir="rtl">
               <bdi dir="rtl">בית מנחם</bdi>
             </div>
-            <div className="brand-address">
-              Paris · 19<sup>e</sup>
-            </div>
           </div>
           <div className="header-date">
             <div className="clock" aria-label={`Il est ${formatClock(now)}`}>
               {formatClock(now)}
             </div>
             <div className="civil-date">{formatCivilDate(now)}</div>
-            <div className="hebrew-date" lang="he" dir="rtl">
+            <div className="hebrew-date">
               {hebrewDate ? (
                 <>
-                  <bdi dir="rtl">{hebrewDate.he}</bdi>
+                  <bdi className="hebrew-date-he" lang="he" dir="rtl">
+                    {hebrewDate.he}
+                  </bdi>
                   <span className="hebrew-transliteration">{hebrewDate.fr}</span>
                 </>
               ) : null}
@@ -274,6 +331,11 @@ export function Display({
             <span className="b-h" lang="he" dir="rtl">
               <bdi dir="rtl">ב״ה</bdi>
             </span>
+            <svg className="shabbat-candle" aria-hidden="true" viewBox="0 0 36 48">
+              <path d="M18 2c5 7 4 10 0 14-4-4-5-7 0-14Z" fill="currentColor" />
+              <path d="M13 18h10l3 26H10l3-26Z" fill="none" stroke="currentColor" strokeWidth="2" />
+              <path d="M12 27h12M11 36h14" stroke="currentColor" strokeWidth="2" />
+            </svg>
             {isKnown ? (
               <div className="weather">
                 <WeatherMark />
@@ -283,7 +345,11 @@ export function Display({
                 </span>
               </div>
             ) : null}
-            <DayBadge day={day} />
+            <DayBadge
+              day={day}
+              period={activePeriod}
+              festive={religiousState.kind === 'yomtov' || religiousState.kind === 'shabbat'}
+            />
           </div>
         </header>
 
@@ -296,15 +362,18 @@ export function Display({
                 period={activePeriod}
                 pkg={packageData}
                 known={isKnown}
-                now={now}
               />
             ) : slide.kind === 'shabbat' ? (
-              <ShabbatFeature
-                period={activePeriod}
-                methodsPending={packageData.methods.status === 'pending'}
-              />
+              <div className="playlist-shabbat">
+                <ShabbatFeature
+                  period={activePeriod}
+                  methodsPending={packageData.methods.status === 'pending'}
+                />
+              </div>
             ) : slide.kind === 'study' ? (
-              <StudyFeature day={day} />
+              <div className="playlist-study">
+                <StudyFeature day={day} />
+              </div>
             ) : (
               <div className="playlist-content">
                 {slideContent ? <ContentCard item={slideContent} /> : <ScheduleFallback />}
@@ -333,12 +402,12 @@ export function Display({
                         <div className="office-time">
                           {entry?.cancelled ? 'Annulé' : (entry?.time ?? '—')}
                         </div>
-                        {entry?.status === 'to_confirm' ? (
-                          <div className="office-status">Horaires à confirmer</div>
-                        ) : null}
                       </div>
                     );
                   })}
+                  {minyanim.some((item) => item.status === 'to_confirm') ? (
+                    <p className="office-status">Horaires à confirmer</p>
+                  ) : null}
                 </section>
                 <section
                   className="display-zone zmanim-zone"
@@ -350,10 +419,8 @@ export function Display({
                     {(
                       [
                         ['Alot Hashahar', day?.zmanim.alot?.instant],
-                        ['Téfilin · Misheyakir', day?.zmanim.misheyakir?.instant],
                         ['Lever du soleil', day?.zmanim.sunrise?.instant],
                         ['Chkia', day?.zmanim.sunset?.instant],
-                        ['Tsét hakokhavim', day?.zmanim.tzeit?.instant],
                       ] as Array<[string, string | undefined]>
                     ).map(([label, instant]) => (
                       <div className="zman-row" key={label}>
@@ -385,19 +452,11 @@ export function Display({
                 <>
                   {sponsor ? (
                     <article className="sponsor-note" data-content-id={sponsor.id}>
-                      <span>Avec le soutien de</span>
+                      <span>Soutien</span>
                       <strong>{sponsor.title}</strong>
                     </article>
                   ) : null}
                   <StudyFeature day={day} />
-                  <div className="qr-panel">
-                    <QRImage url="https://www.chabad.org/dailystudy/" />
-                    <span>
-                      Étude quotidienne
-                      <br />
-                      <small>Scannez pour en savoir plus</small>
-                    </span>
-                  </div>
                 </>
               ) : null}
             </section>
@@ -429,14 +488,12 @@ function ScheduleGrid({
   period,
   pkg,
   known,
-  now,
 }: {
   day: Day | undefined;
   minyanim: PublishedPackage['minyanim'];
   period: PublishedPackage['religiousPeriods'][number] | undefined;
   pkg: PublishedPackage;
   known: boolean;
-  now: Date;
 }) {
   return known ? (
     <div className="playlist-schedule">
@@ -453,6 +510,9 @@ function ScheduleGrid({
             </div>
           );
         })}
+        {minyanim.some((item) => item.status === 'to_confirm') ? (
+          <p className="office-status">Horaires à confirmer</p>
+        ) : null}
       </div>
       <div>
         <SectionHeading number="02" title="Zmanim du jour" />
@@ -468,10 +528,7 @@ function ScheduleGrid({
             <strong>{formatTime(instant as string | undefined)}</strong>
           </div>
         ))}
-        <p className="method-note">
-          {pkg.methods.status === 'pending' ? 'Méthode en attente de validation' : period?.label}
-        </p>
-        <small>{formatCivilDate(now)}</small>
+        <ShabbatFeature period={period} methodsPending={pkg.methods.status === 'pending'} />
       </div>
     </div>
   ) : (
@@ -493,6 +550,11 @@ function ShabbatFeature({
         {period?.kind === 'yomtov' ? 'Chabbat / Fête' : 'Chabbat'}
       </div>
       <div className="period-name">{period?.label ?? 'Prochaine entrée'}</div>
+      {period?.labelHe ? (
+        <div className="period-name-he" lang="he" dir="rtl">
+          <bdi dir="rtl">{period.labelHe}</bdi>
+        </div>
+      ) : null}
       <div className="period-times">
         <span>
           Entrée <strong>{formatTime(period?.start)}</strong>
@@ -509,12 +571,45 @@ function ShabbatFeature({
 function StudyFeature({ day }: { day: Day | undefined }) {
   return (
     <div className="study-feature">
-      <div className="eyebrow">Étude du jour</div>
-      <strong>{day?.study.dafYomi ?? 'Daf Yomi'}</strong>
-      {day?.study.rambam ? <span>{day.study.rambam}</span> : null}
-      {day?.study.hayomYom ? <span>Hayom Yom · {day.study.hayomYom.reference}</span> : null}
-      {day?.study.tanya ? <span>Tanya · {day.study.tanya.reference}</span> : null}
-      <span aria-label="Référence et lien d’étude">Référence · Chabad.org</span>
+      <div className="study-title">Étude quotidienne</div>
+      <div className="study-references">
+        <div className="study-reference">
+          <span>Daf Yomi</span>
+          <strong>{day?.study.dafYomi?.fr ?? 'Référence à venir'}</strong>
+          {day?.study.dafYomi?.he ? (
+            <span lang="he" dir="rtl">
+              <bdi dir="rtl">{day.study.dafYomi.he}</bdi>
+            </span>
+          ) : null}
+        </div>
+        {day?.study.rambam ? (
+          <div className="study-reference">
+            <span>Rambam</span>
+            {day.study.rambam.fr ? <strong>{day.study.rambam.fr}</strong> : null}
+            {day.study.rambam.he ? (
+              <span lang="he" dir="rtl">
+                <bdi dir="rtl">{day.study.rambam.he}</bdi>
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+        {day?.study.hayomYom ? (
+          <div className="study-reference">
+            <span>Hayom Yom</span>
+            <strong>{day.study.hayomYom.reference}</strong>
+          </div>
+        ) : null}
+        {day?.study.tanya ? (
+          <div className="study-reference">
+            <span>Tanya</span>
+            <strong>{day.study.tanya.reference}</strong>
+          </div>
+        ) : null}
+      </div>
+      <div className="study-qr-panel">
+        <QRImage url="https://www.chabad.org/dailystudy/" />
+        <span>Étude du jour</span>
+      </div>
     </div>
   );
 }
@@ -528,5 +623,3 @@ function ScheduleFallback() {
     </article>
   );
 }
-
-export { demoPackage };

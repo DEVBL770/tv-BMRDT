@@ -66,6 +66,7 @@ Polices sous licence SIL OFL auto-hébergées (précache offline) : Frank Ruhl L
 ## 5. Contenus d'étude (Hayom Yom, Tanya, Rambam)
 
 - Références du jour : Rambam et Daf Yomi via Hebcal (CC BY). Hayom Yom / Tanya : aucune source structurée libre identifiée → saisie par l'admin (`daily_study_entries`) : titre, référence, court texte français **rédigé ou autorisé**, lien/QR vers Chabad.org.
+- La table statique de translittération française des sections du Michné Torah (`src/domain/providers/rambamNames.ts`) est dérivée des titres Hebcal et reste **à relire**.
 - Aucun texte complet ni traduction de provenance incertaine n'est intégré.
 
 ## 6. Données personnelles

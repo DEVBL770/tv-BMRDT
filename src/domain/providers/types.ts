@@ -13,8 +13,13 @@ export type CalendarEvent = {
   instant?: string;
   title: string;
   titleHe?: string;
+  titleOriginal?: string;
   category?: string;
   hebrewDate?: string;
+  hebrewDateParts?: { day?: string; month?: string; year?: string };
+  yomtov?: boolean;
+  erev?: boolean;
+  subcategory?: string;
   memo?: string;
   link?: string;
 };
@@ -28,8 +33,8 @@ export type ZmanimDay = {
 
 export type StudyDay = {
   date: string;
-  dafYomi?: string;
-  rambam?: string;
+  dafYomi?: { title: string; titleHe?: string; link?: string };
+  rambam?: { title: string; titleHe?: string; link?: string };
 };
 
 export type WeatherSnapshot = {

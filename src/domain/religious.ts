@@ -21,15 +21,16 @@ export function buildReligiousPeriods(days: Day[]): ReligiousPeriod[] {
   const starts = days.flatMap((day) => {
     const start = instantOf(day.zmanim.candleLighting);
     if (start === undefined) return [];
-    const isYomtov = day.holidayKinds?.includes('yomtov') ?? false;
     const followingDay = daysByDate.get(addLocalDays(day.date, 1));
+    const isYomtov =
+      followingDay?.holidayKinds?.includes('yomtov') === true ||
+      day.holidayKinds?.includes('yomtov') === true ||
+      day.holidayKinds?.includes('erev_yomtov') === true;
     return [
       {
         at: start,
         kind: isYomtov ? ('yomtov' as const) : ('shabbat' as const),
-        label: day.holidays[0] ?? followingDay?.holidays[0] ?? (isYomtov ? 'Fête' : 'Chabbat'),
-        labelHe:
-          day.holidaysHe?.[0] ?? followingDay?.holidaysHe?.[0] ?? (isYomtov ? 'יום טוב' : 'שבת'),
+        day,
       },
     ];
   });
@@ -43,13 +44,46 @@ export function buildReligiousPeriods(days: Day[]): ReligiousPeriod[] {
   const ranges = starts.flatMap((start) => {
     const end = ends.find(({ at }) => at > start.at);
     if (!end) return [];
+    const startDate = localDateOf(start.at);
+    const endDate = localDateOf(end.at);
+    const labels: string[] = [];
+    const labelsHe: string[] = [];
+    const addLabel = (fr: string, he?: string) => {
+      if (fr && !labels.includes(fr)) labels.push(fr);
+      if (he && !labelsHe.includes(he)) labelsHe.push(he);
+    };
+    for (const day of days) {
+      if (day.date < startDate || day.date > endDate) continue;
+      for (const holiday of day.yomtovLabels ?? []) addLabel(holiday.fr, holiday.he);
+      if (day.weekday === 6) {
+        if (day.specialShabbat) {
+          addLabel(day.specialShabbat.fr, day.specialShabbat.he);
+        } else if (
+          !day.holidayKinds?.includes('yomtov') &&
+          !day.holidayKinds?.includes('chol_hamoed') &&
+          day.parasha
+        ) {
+          addLabel(
+            `Chabbat ${day.parasha.fr.replace(/^Paracha\s+/i, '')}`,
+            day.parasha.he?.replace(/^פרשת\s*/u, 'שבת '),
+          );
+        } else {
+          addLabel('Chabbat', 'שבת');
+        }
+      }
+    }
+    if (labels.length === 0)
+      addLabel(
+        start.kind === 'yomtov' ? 'Fête' : 'Chabbat',
+        start.kind === 'yomtov' ? 'יום טוב' : 'שבת',
+      );
     return [
       {
         kind: start.kind,
         start: start.at,
         end: end.at,
-        label: start.label,
-        labelHe: start.labelHe,
+        labels,
+        labelsHe,
       },
     ];
   });
@@ -59,10 +93,11 @@ export function buildReligiousPeriods(days: Day[]): ReligiousPeriod[] {
     if (previous && range.start <= previous.end + 120_000) {
       previous.end = Math.max(previous.end, range.end);
       previous.kind = previous.kind === 'yomtov' || range.kind === 'yomtov' ? 'yomtov' : 'shabbat';
-      if (!previous.label.includes(range.label))
-        previous.label = `${previous.label} · ${range.label}`;
-      if (!previous.labelHe.includes(range.labelHe)) {
-        previous.labelHe = `${previous.labelHe} · ${range.labelHe}`;
+      for (const label of range.labels) {
+        if (!previous.labels.includes(label)) previous.labels.push(label);
+      }
+      for (const label of range.labelsHe) {
+        if (!previous.labelsHe.includes(label)) previous.labelsHe.push(label);
       }
     } else {
       merged.push({ ...range });
@@ -72,8 +107,8 @@ export function buildReligiousPeriods(days: Day[]): ReligiousPeriod[] {
     kind: period.kind,
     start: new Date(period.start).toISOString(),
     end: new Date(period.end).toISOString(),
-    label: period.label,
-    labelHe: period.labelHe,
+    label: period.labels.join(' · '),
+    labelHe: period.labelsHe.join(' · '),
   }));
 }
 
@@ -105,8 +140,34 @@ export function religiousStateAt(
 
   const day = pkg.days.find((item) => item.date === date);
   if (!day) return { kind: 'unknown', nextPeriod };
+  if (day.holidayKinds?.includes('yomtov')) {
+    const labelHe = day.yomtovLabels
+      ?.map(({ he }) => he)
+      .filter(Boolean)
+      .join(' · ');
+    return {
+      kind: 'yomtov',
+      nextPeriod,
+      label: day.yomtovLabels?.map(({ fr }) => fr).join(' · ') ?? day.holidays[0] ?? 'Fête',
+      ...(labelHe ? { labelHe } : {}),
+    };
+  }
   if (day.holidayKinds?.includes('chol_hamoed')) {
-    return { kind: 'chol_hamoed', nextPeriod, label: day.holidays[0] ?? 'Hol Hamoed' };
+    return {
+      kind: 'chol_hamoed',
+      nextPeriod,
+      label: day.cholHamoedLabel?.fr ?? 'Hol Hamoed',
+      ...(day.cholHamoedLabel?.he ? { labelHe: day.cholHamoedLabel.he } : {}),
+    };
+  }
+  if (day.holidayKinds?.includes('erev_yomtov')) {
+    const eve = day.holidays.find((holiday) => /^Erev\b/i.test(holiday));
+    return {
+      kind: 'erev_yomtov',
+      nextPeriod,
+      label: eve ?? nextPeriod?.label ?? 'Veille de Yom Tov',
+      labelHe: nextPeriod?.labelHe,
+    };
   }
   const nextPeriodKind =
     nextPeriod && localDateOf(nextPeriod.start) === date ? nextPeriod.kind : undefined;

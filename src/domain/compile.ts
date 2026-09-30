@@ -14,6 +14,7 @@ export type CompileSettings = {
   site?: PublishedPackage['site'];
   methods?: PublishedPackage['methods'];
   sponsorMargin?: PublishedPackage['sponsorMargin'];
+  hideCommercialOnCholHamoed?: boolean;
   hebrewDayChange?: 'sunset' | 'tzeit' | 'midnight';
 };
 
@@ -41,8 +42,9 @@ function canonicalize(value: unknown): string {
 }
 
 function dayKind(day: Day): ReligiousDayKind {
-  if (day.holidayKinds?.includes('chol_hamoed')) return 'chol_hamoed';
   if (day.holidayKinds?.includes('yomtov')) return 'yomtov';
+  if (day.holidayKinds?.includes('chol_hamoed')) return 'chol_hamoed';
+  if (day.holidayKinds?.includes('erev_yomtov')) return 'erev_yomtov';
   if (day.weekday === 6) return 'shabbat';
   if (day.weekday === 5) return 'erev_shabbat';
   return 'weekday';
@@ -87,6 +89,7 @@ export async function compilePackage(
     layout: input.layout,
     media: input.media,
     sponsorMargin: input.settings.sponsorMargin ?? { beforeMinutes: 30, afterMinutes: 0 },
+    hideCommercialOnCholHamoed: input.settings.hideCommercialOnCholHamoed ?? false,
   };
   const bytes = new TextEncoder().encode(canonicalize(valueWithoutHash));
   const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);

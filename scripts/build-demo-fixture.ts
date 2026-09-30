@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { compilePackage } from '../src/domain/compile';
 import { addLocalDays, weekdayOf } from '../src/domain/time';
 import { HebcalProvider } from '../src/domain/providers/hebcal';
+import { rambamFrenchReference, stripHebrewMarks } from '../src/domain/providers/rambamNames';
 import type { CalendarEvent, ZmanimDay } from '../src/domain/providers/types';
 import type { Day } from '../src/domain/package';
 
@@ -97,8 +98,8 @@ const content = [
   {
     id: 'urgent',
     type: 'urgent' as const,
-    title: 'Information importante',
-    body: 'Merci de vérifier les horaires affichés avant chaque office.',
+    title: 'Horaires',
+    body: 'Vérifiez les horaires avant chaque office.',
     mediaIds: [],
     shabbatVisibility: 'show' as const,
     isCommercial: false,
@@ -196,6 +197,7 @@ const { package: compiled } = await compilePackage({
       },
     },
     sponsorMargin: { beforeMinutes: 30, afterMinutes: 0 },
+    hideCommercialOnCholHamoed: false,
   },
   days,
   rules,
@@ -227,24 +229,28 @@ function toDay(
   zmanimByDate: Map<string, ZmanimDay>,
 ): Day {
   const events = eventsByDate.get(date) ?? [];
-  const calendarDate = new Date(`${date}T12:00:00.000Z`);
-  const frenchParts = new Intl.DateTimeFormat('fr-FR-u-ca-hebrew', {
+  const hebrewDate = events.find((event) => event.category === 'hebdate');
+  const parsedHebrewDate = /^(\d+)\s+(.+?)\s+(\d{4})$/.exec(
+    (hebrewDate?.hebrewDate ?? '').replace(/,/g, '').trim(),
+  );
+  const gregorianParts = new Intl.DateTimeFormat('fr-FR-u-ca-hebrew', {
     timeZone: 'Europe/Paris',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).formatToParts(calendarDate);
-  const hebrewParts = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', {
-    timeZone: 'Europe/Paris',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(calendarDate);
-  const part = (parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) =>
-    parts.find((item) => item.type === type)?.value ?? '';
-  const day = Number(part(frenchParts, 'day'));
-  const monthName = part(frenchParts, 'month');
-  const year = Number(part(frenchParts, 'year').replace(/\D/g, ''));
+  }).formatToParts(new Date(`${date}T12:00:00.000Z`));
+  const gregorianPart = (type: Intl.DateTimeFormatPartTypes) =>
+    gregorianParts.find((part) => part.type === type)?.value ?? '';
+  const day = Number(parsedHebrewDate?.[1] ?? gregorianPart('day'));
+  const monthName = parsedHebrewDate?.[2] ?? gregorianPart('month');
+  const year = Number(parsedHebrewDate?.[3] ?? gregorianPart('year').replace(/\D/g, ''));
+  const hebrewParts = hebrewDate?.hebrewDateParts;
+  const hebrewText =
+    hebrewParts?.day && hebrewParts.month
+      ? stripHebrewMarks(
+          `${hebrewParts.day} ${hebrewParts.month}${hebrewParts.year ? ` ${hebrewParts.year}` : ''}`,
+        )
+      : stripHebrewMarks(hebrewDate?.titleHe ?? '');
   const zmanim = zmanimByDate.get(date)?.times ?? {};
   const candle = events.find(
     (event) => event.category === 'candles' || /allumage|candle lighting/i.test(event.title),
@@ -257,60 +263,114 @@ function toDay(
     .map(({ title }) => title);
   const holidaysHe = events
     .filter((event) => ['holiday', 'major', 'minor'].includes(event.category ?? ''))
-    .map(({ titleHe }) => titleHe ?? '');
-  const holidayKinds = new Set<'yomtov' | 'chol_hamoed'>();
-  const currentHolidayEvents = events.filter((event) =>
-    ['holiday', 'major'].includes(event.category ?? ''),
+    .map(({ titleHe }) => stripHebrewMarks(titleHe ?? ''));
+  const holidayEvents = events.filter((event) =>
+    ['holiday', 'major', 'minor'].includes(event.category ?? ''),
   );
-  const nextHolidayEvents = candle
-    ? (eventsByDate.get(addLocalDays(date, 1)) ?? []).filter((event) =>
-        ['holiday', 'major'].includes(event.category ?? ''),
-      )
-    : [];
-  for (const event of [...currentHolidayEvents, ...nextHolidayEvents]) {
-    const normalized = event.title
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
-      .toLocaleLowerCase('fr')
-      .replace(/[’']/g, '');
-    if (/hol hamoed|\bhm\b/.test(normalized)) holidayKinds.add('chol_hamoed');
-    else if (
-      /rosh hashana|roch hachana|yom kipp?our?|soukk?ot|souccot|sukkot|chemini atzeret|shmini atzeret|simc?hat torah|pessah|pesach|paque|chavouot|shavuot/.test(
-        normalized,
-      )
-    ) {
-      holidayKinds.add('yomtov');
-    }
-  }
-  const parasha = events.find((event) => event.category === 'parashat');
+  const yomtovEvents = holidayEvents.filter((event) => event.yomtov === true);
+  const erevYomtov = holidayEvents.some(
+    (event) => event.erev === true || /^Erev\b/i.test(event.titleOriginal ?? ''),
+  );
+  const cholHamoedEvent = holidayEvents.find((event) =>
+    /\(CH''M\)/i.test(event.titleOriginal ?? ''),
+  );
+  const holidayKinds = [
+    ...(yomtovEvents.length > 0 ? (['yomtov'] as const) : []),
+    ...(cholHamoedEvent ? (['chol_hamoed'] as const) : []),
+    ...(erevYomtov ? (['erev_yomtov'] as const) : []),
+  ];
+  const yomtovLabels = yomtovEvents.map((event) => ({
+    fr: event.title,
+    ...(event.titleHe ? { he: stripHebrewMarks(event.titleHe) } : {}),
+  }));
+  const cholHamoedLabel = cholHamoedEvent
+    ? {
+        fr: `Hol Hamoed ${cholHamoedEvent.title.replace(
+          /\s+(?:I|II|III|IV|V|VI|VII|VIII)\b.*$/iu,
+          '',
+        )}`,
+        ...(cholHamoedEvent.titleHe
+          ? {
+              he: `חול המועד ${stripHebrewMarks(cholHamoedEvent.titleHe)
+                .replace(/\s+[א-ת׳״]+\s*\(.*$/u, '')
+                .replace(/\s*\(.*$/u, '')}`,
+            }
+          : {}),
+      }
+    : undefined;
+  const weekday = weekdayOf(date);
+  const nextShabbat = addLocalDays(date, (6 - weekday + 7) % 7);
+  const nextShabbatEvents = eventsByDate.get(nextShabbat) ?? [];
+  const hasHolidayReading = nextShabbatEvents.some(
+    (event) => event.yomtov === true || /\(CH''M\)/i.test(event.titleOriginal ?? ''),
+  );
+  const parashaEvent = hasHolidayReading
+    ? undefined
+    : nextShabbatEvents.find((event) => event.category === 'parashat');
+  const parasha = parashaEvent
+    ? {
+        fr: parashaEvent.title.replace(/^Parach(?:ah|a)\s*/i, 'Paracha '),
+        ...(parashaEvent.titleHe ? { he: stripHebrewMarks(parashaEvent.titleHe) } : {}),
+      }
+    : undefined;
+  const specialShabbatEvent = events.find((event) => event.subcategory === 'shabbat');
+  const specialShabbat = specialShabbatEvent
+    ? {
+        fr: specialShabbatEvent.title,
+        ...(specialShabbatEvent.titleHe
+          ? { he: stripHebrewMarks(specialShabbatEvent.titleHe) }
+          : {}),
+      }
+    : undefined;
   const roshHodesh = events.find((event) => event.category === 'roshchodesh');
   const omerEvent = events.find((event) => event.category === 'omer');
   const omer = omerEvent ? Number(/(\d+)/.exec(omerEvent.title)?.[1]) || undefined : undefined;
   const dafYomi = events.find((event) => event.category === 'dafyomi');
   const rambam = events.find((event) => event.category?.toLocaleLowerCase('en').includes('rambam'));
+  const dafYomiTitle = dafYomi
+    ? (dafYomi.titleOriginal ?? dafYomi.title).replace(/^Daf Yomi:\s*/i, '')
+    : undefined;
+  const rambamTitle = rambam?.titleOriginal ?? rambam?.title;
+  const rambamFrench = rambamTitle ? rambamFrenchReference(rambamTitle) : undefined;
+  const rambamHebrew = rambam?.titleHe ? stripHebrewMarks(rambam.titleHe) : undefined;
   const zman = (instant: string | undefined) => (instant ? { instant } : undefined);
   const eventInstant = (event: CalendarEvent | undefined) => event?.instant;
   return {
     date,
-    weekday: weekdayOf(date),
+    weekday,
     hebrew: {
       fr: `${day} ${frenchMonth(monthName)} ${year}`,
-      he: hebrewParts.replace(/[\u0591-\u05C7]/g, ''),
+      he: hebrewText,
       day,
       month: frenchMonth(monthName),
       year,
     },
-    ...(parasha
-      ? { parasha: { fr: parasha.title, ...(parasha.titleHe ? { he: parasha.titleHe } : {}) } }
-      : {}),
+    ...(parasha ? { parasha } : {}),
     holidays,
     ...(holidaysHe.some(Boolean) ? { holidaysHe } : {}),
-    ...(holidayKinds.size > 0 ? { holidayKinds: [...holidayKinds] } : {}),
+    ...(holidayKinds.length > 0 ? { holidayKinds } : {}),
+    ...(yomtovLabels.length > 0 ? { yomtovLabels } : {}),
+    ...(cholHamoedLabel ? { cholHamoedLabel } : {}),
+    ...(specialShabbat ? { specialShabbat } : {}),
     ...(roshHodesh ? { roshHodesh: roshHodesh.title } : {}),
     ...(omer ? { omer } : {}),
     study: {
-      ...(dafYomi ? { dafYomi: dafYomi.title } : {}),
-      ...(rambam ? { rambam: rambam.title } : {}),
+      ...(dafYomiTitle
+        ? {
+            dafYomi: {
+              fr: dafYomiTitle.replace(/^Bechorot\b/i, 'Bekhorot'),
+              ...(dafYomi?.titleHe ? { he: stripHebrewMarks(dafYomi.titleHe) } : {}),
+            },
+          }
+        : {}),
+      ...(rambamTitle && (rambamFrench || rambamHebrew)
+        ? {
+            rambam: {
+              ...(rambamFrench ? { fr: rambamFrench } : {}),
+              ...(rambamHebrew ? { he: rambamHebrew } : {}),
+            },
+          }
+        : {}),
       ...(date === '2026-09-30'
         ? {
             hayomYom: {
@@ -340,6 +400,7 @@ function toDay(
 function frenchMonth(month: string): string {
   const normalized = month.toLocaleLowerCase('en');
   const names: Record<string, string> = {
+    tishrei: 'Tichri',
     tishri: 'Tichri',
     heshvan: 'Hechvan',
     cheshvan: 'Hechvan',
@@ -348,8 +409,10 @@ function frenchMonth(month: string): string {
     'sh’vat': 'Chevat',
     "sh'vat": 'Chevat',
     shvat: 'Chevat',
+    shevat: 'Chevat',
     'adar i': 'Adar I',
     'adar ii': 'Adar II',
+    adar: 'Adar',
     nisan: 'Nissan',
     iyar: 'Iyar',
     sivan: 'Sivan',

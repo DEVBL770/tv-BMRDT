@@ -65,6 +65,25 @@ function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
+function hebrewDateParts(value: unknown): CalendarEvent['hebrewDateParts'] {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const parts = value as Record<string, unknown>;
+  const day = asString(parts.d);
+  const month = asString(parts.m);
+  const year = asString(parts.y);
+  if (!day && !month && !year) return undefined;
+  return {
+    ...(day ? { day } : {}),
+    ...(month ? { month } : {}),
+    ...(year ? { year } : {}),
+  };
+}
+
+function studyTitle(item: CalendarEvent): string {
+  const title = item.titleOriginal ?? item.title;
+  return title.replace(/^Daf Yomi:\s*/i, '').replace(/^Rambam(?:,\s*[^:]+)?:\s*/i, '');
+}
+
 function eventDate(value: unknown): string | undefined {
   const raw = asString(value);
   if (!raw) return undefined;
@@ -215,8 +234,11 @@ export class HebcalProvider implements CalendarProvider, ZmanimProvider, StudyPr
             ? eventInstant.toISOString()
             : undefined;
         const titleHe = asString(item.hebrew);
+        const titleOriginal = asString(item.title_orig);
         const category = asString(item.category);
         const hebrewDate = asString(item.hdate);
+        const hebrewParts = hebrewDateParts(item.heDateParts);
+        const subcategory = asString(item.subcat);
         const memo = asString(item.memo);
         const link = asString(item.link);
         items.push({
@@ -224,8 +246,13 @@ export class HebcalProvider implements CalendarProvider, ZmanimProvider, StudyPr
           ...(instant ? { instant } : {}),
           title,
           ...(titleHe ? { titleHe } : {}),
+          ...(titleOriginal ? { titleOriginal } : {}),
           ...(category ? { category } : {}),
           ...(hebrewDate ? { hebrewDate } : {}),
+          ...(hebrewParts ? { hebrewDateParts: hebrewParts } : {}),
+          ...(typeof item.yomtov === 'boolean' ? { yomtov: item.yomtov } : {}),
+          ...(typeof item.erev === 'boolean' ? { erev: item.erev } : {}),
+          ...(subcategory ? { subcategory } : {}),
           ...(memo ? { memo } : {}),
           ...(link ? { link } : {}),
         });
@@ -282,9 +309,19 @@ export class HebcalProvider implements CalendarProvider, ZmanimProvider, StudyPr
     const days = new Map<string, StudyDay>();
     for (const item of data) {
       const current = days.get(item.date) ?? { date: item.date };
-      if (item.category === 'dafyomi') current.dafYomi = item.title;
+      if (item.category === 'dafyomi') {
+        current.dafYomi = {
+          title: studyTitle(item),
+          ...(item.titleHe ? { titleHe: item.titleHe } : {}),
+          ...(item.link ? { link: item.link } : {}),
+        };
+      }
       if (item.category?.toLocaleLowerCase('en').includes('rambam')) {
-        current.rambam = item.title;
+        current.rambam = {
+          title: studyTitle(item),
+          ...(item.titleHe ? { titleHe: item.titleHe } : {}),
+          ...(item.link ? { link: item.link } : {}),
+        };
       }
       if (current.dafYomi || current.rambam) days.set(item.date, current);
     }

@@ -27,12 +27,16 @@ export type JewishDay = {
   hebrew: { fr: string; he: string; day: number; month: string; year: number };
   parasha?: { fr: string; he?: string };
   holidays: string[];
-  holidayKinds?: Array<'yomtov' | 'chol_hamoed'>;
+  holidaysHe?: string[];
+  holidayKinds?: Array<'erev_yomtov' | 'yomtov' | 'chol_hamoed'>;
+  yomtovLabels?: Array<{ fr: string; he?: string }>;
+  cholHamoedLabel?: { fr: string; he?: string };
+  specialShabbat?: { fr: string; he?: string };
   roshHodesh?: string;
   omer?: number;
   study: {
-    dafYomi?: string;
-    rambam?: string;
+    dafYomi?: { fr: string; he?: string };
+    rambam?: { fr?: string; he?: string };
     hayomYom?: { reference: string; url?: string };
     tanya?: { reference: string; url?: string };
   };

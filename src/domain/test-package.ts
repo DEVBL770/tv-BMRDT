@@ -68,6 +68,7 @@ export function testPackage(overrides: Partial<PublishedPackage> = {}): Publishe
     },
     media: [],
     sponsorMargin: { beforeMinutes: 30, afterMinutes: 0 },
+    hideCommercialOnCholHamoed: false,
     ...overrides,
   });
 }

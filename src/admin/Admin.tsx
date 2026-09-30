@@ -8,7 +8,8 @@ import {
 import type { ContentItem, Layout, PublishedPackage } from '../domain/package';
 import { addLocalDays, instantFromLocal, localDateOf } from '../domain/time';
 import { religiousStateAt } from '../domain/religious';
-import { Display, demoPackage } from '../display/Display';
+import { Display } from '../display/Display';
+import { loadDemoPackage } from '../demoPackage';
 
 type AdminView = 'Tableau de bord' | 'Horaires' | 'Annonces' | 'Médias' | 'Écran' | 'Plus';
 type Draft = {
@@ -18,7 +19,7 @@ type Draft = {
   layout: Layout;
 };
 
-const initialDraft: Draft = {
+const emptyDraft: Draft = {
   rules: [
     {
       id: 'chaharit-base',
@@ -48,18 +49,22 @@ const initialDraft: Draft = {
   exceptions: [
     { id: 'demo-sunday', date: '2026-10-04', office: 'Chaharit', time: '09:00', cancelled: false },
   ],
-  content: demoPackage.content,
-  layout: demoPackage.layout,
+  content: [],
+  layout: {
+    mode: 'fixed',
+    zones: {},
+    slides: [{ id: 'schedule', kind: 'schedule', durationSec: 30 }],
+  },
 };
 
-function loadDraft(): Draft {
+function loadDraft(defaults: Draft): Draft {
   try {
     const stored = localStorage.getItem('beth-menahem-draft');
-    if (!stored) return initialDraft;
+    if (!stored) return defaults;
     const parsed = JSON.parse(stored) as Partial<Draft>;
-    return { ...initialDraft, ...parsed };
+    return { ...defaults, ...parsed };
   } catch {
-    return initialDraft;
+    return defaults;
   }
 }
 
@@ -92,7 +97,9 @@ function previewDate(value: string, time: string): Date {
 }
 
 export function Admin() {
-  const [draft, setDraft] = useState<Draft>(loadDraft);
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [demoPackage, setDemoPackage] = useState<PublishedPackage>();
+  const [draftReady, setDraftReady] = useState(false);
   const [view, setView] = useState<AdminView>('Tableau de bord');
   const [screenView, setScreenView] = useState<'editor' | 'preview'>('editor');
   const [saved, setSaved] = useState(false);
@@ -112,10 +119,34 @@ export function Admin() {
   const [draftMessage, setDraftMessage] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('beth-menahem-draft', JSON.stringify(draft));
-  }, [draft]);
+    let active = true;
+    void loadDemoPackage()
+      .then((packageData) => {
+        if (!active) return;
+        setDemoPackage(packageData);
+        setDraft(
+          loadDraft({
+            ...emptyDraft,
+            content: packageData.content,
+            layout: packageData.layout,
+          }),
+        );
+        setDraftReady(true);
+      })
+      .catch(() => {
+        if (active) setDraftReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const previewPackage = useMemo<PublishedPackage>(() => {
+  useEffect(() => {
+    if (draftReady) localStorage.setItem('beth-menahem-draft', JSON.stringify(draft));
+  }, [draft, draftReady]);
+
+  const previewPackage = useMemo<PublishedPackage | undefined>(() => {
+    if (!demoPackage) return undefined;
     const planning = compileMinyanPlanning(
       demoPackage.days.map(({ date }) => ({
         date,
@@ -136,7 +167,7 @@ export function Admin() {
         status,
       })),
     };
-  }, [draft]);
+  }, [demoPackage, draft]);
 
   function addException(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -624,11 +655,13 @@ export function Admin() {
                 </div>
                 <div className="preview-frame">
                   <div className="draft-ribbon">BROUILLON — non publié</div>
-                  <Display
-                    packageData={previewPackage}
-                    previewInstant={previewDate(previewDay, previewTime)}
-                    previewMode
-                  />
+                  {previewPackage ? (
+                    <Display
+                      packageData={previewPackage}
+                      previewInstant={previewDate(previewDay, previewTime)}
+                      previewMode
+                    />
+                  ) : null}
                 </div>
                 <div className="admin-actions">
                   <button className="primary-button" type="button" onClick={saveDraft}>

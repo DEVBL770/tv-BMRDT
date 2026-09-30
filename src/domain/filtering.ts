@@ -25,7 +25,12 @@ export function isContentVisible(
 
   const state = religiousStateAt(at, pkg);
   if (item.isCommercial) {
-    if (state.kind === 'unknown' || state.kind === 'chol_hamoed') return false;
+    if (
+      state.kind === 'unknown' ||
+      (state.kind === 'chol_hamoed' && pkg.hideCommercialOnCholHamoed)
+    ) {
+      return false;
+    }
     const beforeMs = pkg.sponsorMargin.beforeMinutes * 60_000;
     const afterMs = pkg.sponsorMargin.afterMinutes * 60_000;
     if (

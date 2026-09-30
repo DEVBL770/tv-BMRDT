@@ -41,10 +41,71 @@ describe('HebcalProvider avec réponses enregistrées', () => {
     expect(study.data).toEqual([
       {
         date: '2027-04-23',
-        dafYomi: 'Daf Yomi: Yevamot 2',
-        rambam: 'Rambam, 3 chapitres: Kelim 1-3',
+        dafYomi: { title: 'Yevamot 2' },
+        rambam: { title: 'Kelim 1-3' },
       },
     ]);
+  });
+
+  it('conserve les champs de classification et les composantes hébraïques de Hebcal', async () => {
+    const provider = new HebcalProvider({
+      fetch: async () =>
+        reply({
+          items: [
+            {
+              date: '2026-09-25',
+              title: '14. Tishrei',
+              title_orig: '14 Tishrei 5787',
+              category: 'hebdate',
+              hebrew: 'י״ד תִּשְׁרֵי',
+              hdate: '14 Tishrei 5787',
+              heDateParts: { d: 'י״ד', m: 'תשרי', y: 'תשפ״ז' },
+            },
+            {
+              date: '2026-09-25',
+              title: 'Erev Soukkot',
+              title_orig: 'Erev Sukkot',
+              category: 'holiday',
+              subcat: 'major',
+              hebrew: 'ערב סוכות',
+            },
+            {
+              date: '2026-09-26',
+              title: 'Soukkot I',
+              title_orig: 'Sukkot I',
+              category: 'holiday',
+              subcat: 'major',
+              yomtov: true,
+              hebrew: 'סוכות א׳',
+            },
+            {
+              date: '2026-09-28',
+              title: 'Soukkot III (H̲’’M)',
+              title_orig: "Sukkot III (CH''M)",
+              category: 'holiday',
+              subcat: 'major',
+              hebrew: 'סוכות ג׳ (חוה״מ)',
+            },
+          ],
+        }),
+      delayMs: 0,
+    });
+    const { data } = await provider.getCalendar('2026-09-25', '2026-09-28');
+    expect(data.find(({ category }) => category === 'hebdate')).toMatchObject({
+      titleHe: 'י״ד תִּשְׁרֵי',
+      hebrewDateParts: { day: 'י״ד', month: 'תשרי', year: 'תשפ״ז' },
+    });
+    expect(data.find(({ category }) => category === 'hebdate')).toMatchObject({
+      titleOriginal: '14 Tishrei 5787',
+    });
+    expect(data.find(({ titleOriginal }) => titleOriginal === 'Erev Sukkot')).toMatchObject({
+      subcategory: 'major',
+    });
+    expect(data.find(({ date }) => date === '2026-09-26')).toMatchObject({ yomtov: true });
+    expect(data.find(({ titleOriginal }) => titleOriginal?.includes("CH''M"))).toMatchObject({
+      titleOriginal: "Sukkot III (CH''M)",
+      subcategory: 'major',
+    });
   });
 
   it('demande les paramètres Paris/diaspora attendus et découpe les plages à 180 jours', async () => {

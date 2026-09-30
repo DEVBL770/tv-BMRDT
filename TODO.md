@@ -14,9 +14,12 @@ Légende : [x] fait · [~] en cours · [ ] à faire · [!] bloqué (accès/déci
 
 - [x] Vite/React/TS, lint/format/typecheck/test, CI GitHub Actions
 - [x] Domaine partagé (types, schéma de paquet zod, moteur minyanim, état religieux, filtrage)
-- [x] TV `/display` mode fixe + playlist, thèmes semaine/Chabbat/Yom Tov, scénarios et captures 1080p/4K
+- [x] TV `/display` mode fixe + playlist, typographie grand écran, thème semaine/Chabbat/Yom Tov
+- [x] Fixture Hebcal chargée dynamiquement en démo/aperçu ; dates, fêtes, paracha, périodes et références d'étude normalisées
 - [x] Admin iPhone (squelette navigation) + aperçu et stockage local de démonstration
-- [x] Vérifications locales (lint, format, typecheck, 31 tests, build, E2E)
+- [x] Tests fixture sur Adar I/II, classifications, périodes, paracha, études et visibilité des sponsors
+- [x] E2E : instants fixes 1080p/4K, trois scénarios playlist par résolution, admin iPhone et seuil typographique TV
+- [x] Vérifications locales consolidées : lint, format, typecheck, 36 tests, build et E2E
 - [ ] Validation visuelle par l'utilisateur
 
 ## Étape 3 — Données
