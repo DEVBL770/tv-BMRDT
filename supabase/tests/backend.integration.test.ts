@@ -96,9 +96,16 @@ function queryLocalDatabase(sql: string): { rows: Array<Record<string, string>> 
     ['exec', 'supabase', 'db', 'query', '--local', '--output-format', 'json', sql],
     { encoding: 'utf8' },
   );
-  const jsonStart = output.indexOf('{');
+  const jsonStart = output.search(/[\[{]/);
   if (jsonStart < 0) throw new Error('Supabase query did not return JSON.');
-  return JSON.parse(output.slice(jsonStart)) as { rows: Array<Record<string, string>> };
+  const result: unknown = JSON.parse(output.slice(jsonStart));
+  const rows = Array.isArray(result)
+    ? result
+    : typeof result === 'object' && result !== null && 'rows' in result
+      ? result.rows
+      : undefined;
+  if (!Array.isArray(rows)) throw new Error('Supabase query JSON did not contain rows.');
+  return { rows: rows as Array<Record<string, string>> };
 }
 
 function nextIp() {
