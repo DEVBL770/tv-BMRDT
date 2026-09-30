@@ -19,23 +19,29 @@ Légende : [x] fait · [~] en cours · [ ] à faire · [!] bloqué (accès/déci
 - [x] Admin iPhone (squelette navigation) + aperçu et stockage local de démonstration
 - [x] Tests fixture sur Adar I/II, classifications, périodes, paracha, études et visibilité des sponsors
 - [x] E2E : instants fixes 1080p/4K, trois scénarios playlist par résolution, admin iPhone et seuil typographique TV
-- [x] Vérifications locales consolidées : lint, format, typecheck, 36 tests, build et E2E
+- [x] Vérifications locales consolidées : lint, format, typecheck, 38 tests, build, 3 E2E et 30 tests d'intégration
 - [ ] Validation visuelle par l'utilisateur
 
 ## Étape 3 — Données
 
 - [x] Providers Hebcal (calendrier, zmanim, étude) + provenance + validation sur réponses enregistrées
 - [x] Fixture réelle Hebcal de 401 jours (2026-09-01 → 2027-10-06)
-- [ ] 400 jours, comparaison 12 dates de référence (@hebcal/core + CalJ/Chabad manuel)
-- [ ] Feuille de validation religieuse
+- [x] Comparaison indépendante `@hebcal/core` + `kosher-zmanim` sur 12 dates, sans réseau en CI
+- [x] `docs/VALIDATION_RELIGIEUSE.md` avec colonnes CalJ/Chabad et validation manuelle à compléter
+- [!] Approbation des méthodes et relevés manuels CalJ/Chabad (responsable religieux)
 
 ## Étape 4 — Backend
 
-- [ ] Migrations, RLS (anon/admin/device), Storage privé
-- [ ] Edge Functions : player, publish/restore, refresh-data, devices, media, weather
-- [ ] Tests d'autorisation
+- [x] Supabase CLI local, migrations reproductibles, seed et bucket Storage privé
+- [x] RLS/grants, audit, publication immuable, rétention et verrous
+- [x] Edge Functions pair/player/admin/weather, refresh, publication, restauration, médias et export
+- [x] Suite locale de 30 tests d'intégration distincts : 30/30 réussis après `supabase db reset`
+- [x] Job CI séparé pour réinitialiser Supabase et exécuter l'intégration
 
 ## Étape 5 — Admin
+
+- [x] Repository démo/Supabase et connexion minimale par e-mail/mot de passe
+- [ ] Interface complète d'administration des contenus et horaires
 
 ## Étape 6 — Player offline
 

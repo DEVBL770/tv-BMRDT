@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { addLocalDays } from '../time';
+import { addLocalDays } from '../time.ts';
 import type {
   CalendarEvent,
   CalendarProvider,
@@ -9,7 +9,7 @@ import type {
   StudyProvider,
   ZmanimDay,
   ZmanimProvider,
-} from './types';
+} from './types.ts';
 
 const BASE_URL = 'https://www.hebcal.com';
 const LOCATION = { latitude: 48.8885, longitude: 2.3821, tzid: 'Europe/Paris' };

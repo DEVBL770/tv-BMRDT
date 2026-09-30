@@ -10,6 +10,8 @@ import { addLocalDays, instantFromLocal, localDateOf } from '../domain/time';
 import { religiousStateAt } from '../domain/religious';
 import { Display } from '../display/Display';
 import { loadDemoPackage } from '../demoPackage';
+import { createAdminRepository } from '../lib/adminRepository';
+import { supabase } from '../lib/supabase';
 
 type AdminView = 'Tableau de bord' | 'Horaires' | 'Annonces' | 'Médias' | 'Écran' | 'Plus';
 type Draft = {
@@ -57,17 +59,6 @@ const emptyDraft: Draft = {
   },
 };
 
-function loadDraft(defaults: Draft): Draft {
-  try {
-    const stored = localStorage.getItem('beth-menahem-draft');
-    if (!stored) return defaults;
-    const parsed = JSON.parse(stored) as Partial<Draft>;
-    return { ...defaults, ...parsed };
-  } catch {
-    return defaults;
-  }
-}
-
 const navItems: AdminView[] = [
   'Tableau de bord',
   'Horaires',
@@ -97,9 +88,15 @@ function previewDate(value: string, time: string): Date {
 }
 
 export function Admin() {
+  const repository = useMemo(() => createAdminRepository(), []);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [demoPackage, setDemoPackage] = useState<PublishedPackage>();
   const [draftReady, setDraftReady] = useState(false);
+  const [authReady, setAuthReady] = useState(repository.mode === 'demo');
+  const [authenticated, setAuthenticated] = useState(repository.mode === 'demo');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
   const [view, setView] = useState<AdminView>('Tableau de bord');
   const [screenView, setScreenView] = useState<'editor' | 'preview'>('editor');
   const [saved, setSaved] = useState(false);
@@ -120,30 +117,62 @@ export function Admin() {
 
   useEffect(() => {
     let active = true;
-    void loadDemoPackage()
-      .then((packageData) => {
+    async function initialize() {
+      if (repository.mode === 'demo') {
+        const packageData = await loadDemoPackage();
+        const initial = await repository.loadDraft({
+          ...emptyDraft,
+          content: packageData.content,
+          layout: packageData.layout,
+        });
         if (!active) return;
         setDemoPackage(packageData);
-        setDraft(
-          loadDraft({
-            ...emptyDraft,
-            content: packageData.content,
-            layout: packageData.layout,
-          }),
-        );
+        setDraft(initial);
         setDraftReady(true);
-      })
-      .catch(() => {
-        if (active) setDraftReady(true);
-      });
+        setAuthReady(true);
+        return;
+      }
+      const client = supabase;
+      if (!client) {
+        setAuthReady(true);
+        return;
+      }
+      const { data, error } = await client.auth.getSession();
+      if (!active) return;
+      if (error || !data.session) {
+        setAuthReady(true);
+        return;
+      }
+      const { data: admin, error: adminError } = await client.rpc('is_admin');
+      if (!active) return;
+      if (adminError || admin !== true) {
+        await client.auth.signOut();
+        setAuthError('Ce compte ne dispose pas des droits administrateur.');
+        setAuthReady(true);
+        return;
+      }
+      const initial = await repository.loadDraft(emptyDraft);
+      if (!active) return;
+      setDraft(initial);
+      setDraftReady(true);
+      setAuthenticated(true);
+      setAuthReady(true);
+    }
+    void initialize().catch(() => {
+      if (!active) return;
+      setAuthError('Connexion au serveur impossible.');
+      setAuthReady(true);
+    });
     return () => {
       active = false;
     };
-  }, []);
+  }, [repository]);
 
   useEffect(() => {
-    if (draftReady) localStorage.setItem('beth-menahem-draft', JSON.stringify(draft));
-  }, [draft, draftReady]);
+    if (draftReady && repository.mode === 'demo') {
+      void repository.saveDraft(draft);
+    }
+  }, [draft, draftReady, repository]);
 
   const previewPackage = useMemo<PublishedPackage | undefined>(() => {
     if (!demoPackage) return undefined;
@@ -172,7 +201,7 @@ export function Admin() {
   function addException(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const item: MinyanException = {
-      id: `exception-${Date.now()}`,
+      id: crypto.randomUUID(),
       date: exceptionDate,
       office: exceptionOffice,
       time: exceptionTime || null,
@@ -198,7 +227,7 @@ export function Admin() {
       return;
     }
     const item: ContentItem = {
-      id: `contenu-${Date.now()}`,
+      id: crypto.randomUUID(),
       type: selectedType,
       title: title.trim(),
       ...(body.trim() ? { body: body.trim() } : {}),
@@ -219,11 +248,47 @@ export function Admin() {
     setContentError('');
   }
 
-  function saveDraft() {
-    localStorage.setItem('beth-menahem-draft', JSON.stringify(draft));
-    setSaved(true);
-    setDraftMessage('Brouillon enregistré sur cet appareil.');
-    window.setTimeout(() => setSaved(false), 2500);
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase) return;
+    setAuthError('');
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: authPassword,
+    });
+    if (error || !data.session) {
+      setAuthError('Adresse e-mail ou mot de passe incorrect.');
+      return;
+    }
+    const { data: admin, error: adminError } = await supabase.rpc('is_admin');
+    if (adminError || admin !== true) {
+      await supabase.auth.signOut();
+      setAuthError('Ce compte ne dispose pas des droits administrateur.');
+      return;
+    }
+    try {
+      setDraft(await repository.loadDraft(emptyDraft));
+      setDraftReady(true);
+      setAuthenticated(true);
+    } catch {
+      setAuthError('Connexion au serveur impossible.');
+      await supabase.auth.signOut();
+    }
+  }
+
+  async function saveDraft() {
+    try {
+      await repository.saveDraft(draft);
+      setSaved(true);
+      setDraftMessage(
+        repository.mode === 'demo'
+          ? 'Brouillon enregistré sur cet appareil.'
+          : 'Brouillon enregistré dans Supabase.',
+      );
+      window.setTimeout(() => setSaved(false), 2500);
+    } catch {
+      setDraftMessage('Enregistrement impossible. Vérifiez la connexion et les droits admin.');
+    }
   }
 
   function moveSlide(index: number, offset: -1 | 1) {
@@ -237,6 +302,51 @@ export function Admin() {
   const currentDate = localDateOf(new Date());
   const planning = Array.from({ length: 14 }, (_, index) => addLocalDays(currentDate, index));
 
+  if (!authReady) {
+    return <main className="login-screen">Chargement…</main>;
+  }
+  if (repository.mode === 'supabase' && !authenticated) {
+    return (
+      <main className="login-screen">
+        <form className="login-card" onSubmit={signIn}>
+          <span className="admin-brand-monogram">ב״ה</span>
+          <h1>Administration</h1>
+          <label>
+            Adresse e-mail
+            <input
+              type="email"
+              autoComplete="username"
+              required
+              value={authEmail}
+              onChange={(event) => setAuthEmail(event.target.value)}
+            />
+          </label>
+          <label>
+            Mot de passe
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={authPassword}
+              onChange={(event) => setAuthPassword(event.target.value)}
+            />
+          </label>
+          {authError ? (
+            <p className="form-error" role="alert">
+              {authError}
+            </p>
+          ) : null}
+          <button className="primary-button" type="submit">
+            Se connecter
+          </button>
+          <p className="form-note">
+            Récupération du mot de passe : procédure console (ADMIN_GUIDE).
+          </p>
+        </form>
+      </main>
+    );
+  }
+
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
@@ -248,7 +358,7 @@ export function Admin() {
         <AdminNav active={view} onSelect={setView} />
         <div className="sidebar-status">
           <span className="status-dot" />
-          Mode démonstration
+          {repository.mode === 'demo' ? 'Mode démonstration' : 'Mode Supabase'}
         </div>
       </aside>
       <div className="admin-content">
@@ -258,7 +368,7 @@ export function Admin() {
             <h1>{view === 'Plus' ? 'Paramètres et historique' : view}</h1>
           </div>
           <div className="draft-indicator">
-            <span /> Brouillon local
+            <span /> {repository.mode === 'demo' ? 'Brouillon local' : 'Brouillon serveur'}
           </div>
         </header>
 

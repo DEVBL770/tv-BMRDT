@@ -115,7 +115,7 @@ describe('fixture religieuse Hebcal', () => {
       kind: 'yomtov',
     });
     expect(periodContaining('Chemini Atzéret')).toMatchObject({
-      label: 'Chemini Atzéret · Chabbat · Simh̲at Torah',
+      label: "Chemini Atzéret · Chabbat · Sim'hat Torah",
       labelHe: 'שמיני עצרת · שבת · שמחת תורה',
     });
 
@@ -124,14 +124,14 @@ describe('fixture religieuse Hebcal', () => {
       label: 'Roch Hachanah 5788 · Chabbat · Roch Hachanah II',
       labelHe: 'ראש השנה 5788 · שבת · ראש השנה ב׳',
     });
-    const pesachFirst = periodContaining('Pessah̲ I');
-    const pesachLast = periodContaining('Pessah̲ VII');
+    const pesachFirst = periodContaining("Pessa'h I");
+    const pesachLast = periodContaining("Pessa'h VII");
     expect(pesachFirst).toMatchObject({
-      label: 'Pessah̲ I · Pessah̲ II · Chabbat',
+      label: "Pessa'h I · Pessa'h II · Chabbat",
       labelHe: 'פסח א׳ · פסח ב׳ · שבת',
     });
     expect(pesachLast).toMatchObject({
-      label: 'Pessah̲ VII · Pessah̲ VIII',
+      label: "Pessa'h VII · Pessa'h VIII",
       labelHe: 'פסח ז׳ · פסח ח׳',
     });
     expect(periodContaining('Chavou’ot I')).toMatchObject({

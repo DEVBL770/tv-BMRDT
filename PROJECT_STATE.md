@@ -2,13 +2,14 @@
 
 _Dernière mise à jour : 2026-09-30_
 
-- **Étape courante** : corrections des fondations de l'étape 2 implémentées et vérifiées localement ; validation visuelle par l'utilisateur à venir.
-- **Environnements** : Node.js 22, pnpm 10, Vite. Aucun environnement déployé ; production prévue sur Cloudflare Pages (`*.pages.dev`) avec Supabase Free.
-- **Fonctions terminées** : domaine partagé (temps Paris, minyanim, états religieux, filtrage et playlist), normalisation Hebcal (dates hébraïques, fêtes, périodes, paracha et études), fixture de 401 jours, écran TV fixe/playlist remanié et admin de démonstration mobile.
-- **Vérification** : lint, format, typecheck, 36 tests unitaires, build et 3 tests E2E réussis localement ; seuil de texte TV 22 px et débordements contrôlés.
-- **Captures E2E** : 27 captures créées sous `artifacts/screenshots/` (ignoré par Git) : 9 instants fixes en 1080p/4K, 3 playlists par résolution, 3 vues admin iPhone. Non relues manuellement.
-- **Build** : bundle principal `340.91 kB` (107.59 kB gzip) ; fixture de démonstration chargée dans un chunk séparé de `417.51 kB` (41.48 kB gzip).
-- **Décisions en attente** : voir DECISIONS.md « En attente d'approbation » ; méthodes religieuses encore `pending`.
-- **Blocages** : dépôt public (à passer en privé) ; comptes Cloudflare/Supabase à fournir au raccordement.
-- **Limites de l'étape** : l'administration utilise `localStorage`, la publication est désactivée et le player n'a pas encore de cache offline.
-- **Prochaine étape immédiate** : validation visuelle des captures ; la comparaison indépendante de 12 dates et la feuille de validation religieuse restent à faire.
+- **Étape courante** : étapes 3–4 implémentées et vérifiées localement. L'interface admin complète et le player connecté/offline restent à faire.
+- **Environnements** : Node.js 22, pnpm 10, Vite et Supabase CLI 2.117.0. Supabase local, les fonctions et le mock Hebcal sont utilisés pour l'intégration ; aucun environnement de production n'est déployé.
+- **Données de référence** : provider Hebcal et fixture enregistrée de 401 jours (2026-09-01 → 2027-10-06) ; comparaison `@hebcal/core`/`kosher-zmanim` sur 12 dates dans `docs/VALIDATION_RELIGIEUSE.md`. Les relevés CalJ/Chabad et l'approbation de méthode restent manuels.
+- **Backend** : migrations, seed local, RLS, Storage privé, audit, versions publiées immuables et Edge Functions `pair`, `player`, `admin`, `weather`. Le partage Deno du domaine est généré par `pnpm sync:shared`.
+- **Administration** : connexion minimale par e-mail/mot de passe et repositories démo/Supabase ; l'inscription publique reste fermée. La configuration de production est décrite dans `DEPLOYMENT.md`.
+- **Intégration** : 30 cas distincts réussis dans `supabase/tests/backend.integration.test.ts` après un `supabase db reset` complet.
+- **Vérification locale** : `supabase db reset` réussi ; `pnpm sync:shared` sans dérive ; lint, format, typecheck, 38 tests unitaires, build, 3 E2E et 30 tests d'intégration réussis. Le bundle JavaScript principal fait 342,48 kB (108,05 kB gzip) ; la fixture est isolée dans un chunk de 417,40 kB (41,46 kB gzip).
+- **Captures E2E** : les captures générées restent sous `artifacts/screenshots/` (ignoré par Git) ; elles ne sont pas relues manuellement.
+- **Décisions en attente** : voir `DECISIONS.md` ; les méthodes religieuses sont toujours `pending`.
+- **Blocages de raccordement** : dépôt GitHub public à passer en privé par son propriétaire ; accès Cloudflare/Supabase, logo et validation religieuse à fournir avant la production.
+- **Prochaine étape** : construire l'interface d'administration complète puis le player connecté/offline.

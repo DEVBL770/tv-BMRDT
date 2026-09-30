@@ -14,6 +14,10 @@ const firstDate = '2026-09-01';
 const lastDate = addLocalDays(firstDate, 400);
 const provider = new HebcalProvider({ dr1: false });
 
+function normalizeHebcalFrenchLabel(value: string): string {
+  return value.replace(/h\u0332/gu, "'h");
+}
+
 const [calendarResult, zmanimResult] = await Promise.all([
   provider.getCalendar(firstDate, lastDate),
   provider.getZmanim(firstDate, lastDate),
@@ -260,7 +264,7 @@ function toDay(
   );
   const holidays = events
     .filter((event) => ['holiday', 'major', 'minor'].includes(event.category ?? ''))
-    .map(({ title }) => title);
+    .map(({ title }) => normalizeHebcalFrenchLabel(title));
   const holidaysHe = events
     .filter((event) => ['holiday', 'major', 'minor'].includes(event.category ?? ''))
     .map(({ titleHe }) => stripHebrewMarks(titleHe ?? ''));
@@ -280,14 +284,13 @@ function toDay(
     ...(erevYomtov ? (['erev_yomtov'] as const) : []),
   ];
   const yomtovLabels = yomtovEvents.map((event) => ({
-    fr: event.title,
+    fr: normalizeHebcalFrenchLabel(event.title),
     ...(event.titleHe ? { he: stripHebrewMarks(event.titleHe) } : {}),
   }));
   const cholHamoedLabel = cholHamoedEvent
     ? {
-        fr: `Hol Hamoed ${cholHamoedEvent.title.replace(
-          /\s+(?:I|II|III|IV|V|VI|VII|VIII)\b.*$/iu,
-          '',
+        fr: `Hol Hamoed ${normalizeHebcalFrenchLabel(
+          cholHamoedEvent.title.replace(/\s+(?:I|II|III|IV|V|VI|VII|VIII)\b.*$/iu, ''),
         )}`,
         ...(cholHamoedEvent.titleHe
           ? {
@@ -309,14 +312,16 @@ function toDay(
     : nextShabbatEvents.find((event) => event.category === 'parashat');
   const parasha = parashaEvent
     ? {
-        fr: parashaEvent.title.replace(/^Parach(?:ah|a)\s*/i, 'Paracha '),
+        fr: normalizeHebcalFrenchLabel(
+          parashaEvent.title.replace(/^Parach(?:ah|a)\s*/i, 'Paracha '),
+        ),
         ...(parashaEvent.titleHe ? { he: stripHebrewMarks(parashaEvent.titleHe) } : {}),
       }
     : undefined;
   const specialShabbatEvent = events.find((event) => event.subcategory === 'shabbat');
   const specialShabbat = specialShabbatEvent
     ? {
-        fr: specialShabbatEvent.title,
+        fr: normalizeHebcalFrenchLabel(specialShabbatEvent.title),
         ...(specialShabbatEvent.titleHe
           ? { he: stripHebrewMarks(specialShabbatEvent.titleHe) }
           : {}),
@@ -352,7 +357,7 @@ function toDay(
     ...(yomtovLabels.length > 0 ? { yomtovLabels } : {}),
     ...(cholHamoedLabel ? { cholHamoedLabel } : {}),
     ...(specialShabbat ? { specialShabbat } : {}),
-    ...(roshHodesh ? { roshHodesh: roshHodesh.title } : {}),
+    ...(roshHodesh ? { roshHodesh: normalizeHebcalFrenchLabel(roshHodesh.title) } : {}),
     ...(omer ? { omer } : {}),
     study: {
       ...(dafYomiTitle

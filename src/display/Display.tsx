@@ -419,6 +419,7 @@ function DisplayCanvas({ packageData, previewInstant, previewMode = false }: Dis
                     {(
                       [
                         ['Alot Hashahar', day?.zmanim.alot?.instant],
+                        ['Téfilin (Misheyakir)', day?.zmanim.misheyakir?.instant],
                         ['Lever du soleil', day?.zmanim.sunrise?.instant],
                         ['Chkia', day?.zmanim.sunset?.instant],
                       ] as Array<[string, string | undefined]>

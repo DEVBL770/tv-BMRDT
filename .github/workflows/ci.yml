@@ -17,8 +17,61 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm sync:shared && git diff --exit-code
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.117.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec supabase start >/dev/null 2>&1
+      - run: pnpm exec supabase db reset
+      - name: Start recorded Hebcal mock
+        run: |
+          pnpm exec tsx supabase/tests/mock-hebcal.ts > "$RUNNER_TEMP/mock-hebcal.log" 2>&1 &
+          for attempt in $(seq 1 30); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data ok http://127.0.0.1:8765/_mode)
+            if [ "$status" = "204" ]; then break; fi
+            sleep 1
+          done
+          test "$status" = "204"
+      - name: Export local Supabase test settings
+        run: |
+          eval "$(pnpm exec supabase status -o env)"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
+      - name: Start Edge Functions
+        run: |
+          cp supabase/.env.integration.example supabase/.env.integration
+          network=$(docker network ls --format '{{.Name}}' | awk '/supabase_network_/ {print; exit}')
+          gateway=$(docker network inspect "$network" --format '{{(index .IPAM.Config 0).Gateway}}')
+          sed -i "s#http://host.docker.internal:8765#http://$gateway:8765#" supabase/.env.integration
+          pnpm exec supabase functions serve --env-file supabase/.env.integration > "$RUNNER_TEMP/functions.log" 2>&1 &
+          for attempt in $(seq 1 60); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+              -H "apikey: $SUPABASE_ANON_KEY" -H 'content-type: application/json' \
+              --data '{}' http://127.0.0.1:54321/functions/v1/pair)
+            if [ "$status" != "000" ]; then break; fi
+            sleep 1
+          done
+          test "$status" != "000"
+      - run: pnpm test:integration
