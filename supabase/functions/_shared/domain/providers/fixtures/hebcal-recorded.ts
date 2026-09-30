@@ -1,12 +1,47 @@
 export const calendarResponse = {
   items: [
     {
+      title: '19th of Tishrei',
+      date: '2026-09-30',
+      hdate: '19 Tishrei 5787',
+      category: 'hebdate',
+      title_orig: '19 Tishrei 5787',
+      hebrew: 'י״ט תשרי',
+      heDateParts: { y: 'תשפ״ז', m: 'תשרי', d: 'י״ט' },
+    },
+    {
+      title: 'Sukkot V (CH’’M)',
+      date: '2026-09-30',
+      hdate: '19 Tishrei 5787',
+      category: 'holiday',
+      subcat: 'major',
+      title_orig: "Sukkot V (CH''M)",
+      hebrew: 'סוכות ה׳ (חוה״מ)',
+    },
+    {
       date: '2026-10-03T00:00:00+02:00',
       title: 'Souccot II',
       hebrew: 'סוכות ב׳',
       hdate: '21 Tishri 5787',
       category: 'holiday',
       memo: 'Diaspora',
+    },
+    {
+      title: '29th of Tishrei',
+      date: '2026-10-10',
+      hdate: '29 Tishrei 5787',
+      category: 'hebdate',
+      title_orig: '29 Tishrei 5787',
+      hebrew: 'כ״ט תשרי',
+      heDateParts: { y: 'תשפ״ז', m: 'תשרי', d: 'כ״ט' },
+    },
+    {
+      title: 'Parashat Bereshit',
+      date: '2026-10-10',
+      hdate: '29 Tishrei 5787',
+      category: 'parashat',
+      hebrew: 'פרשת בראשית',
+      link: 'https://hebcal.com/s/5787/1?us=js&um=api',
     },
     {
       date: '2026-10-04T00:00:00+02:00',

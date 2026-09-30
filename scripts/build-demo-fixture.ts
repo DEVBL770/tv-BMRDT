@@ -182,7 +182,7 @@ const layout = {
     { id: 'qr', kind: 'qr' as const, contentIds: ['qr-etude'], durationSec: 20 },
   ],
   banner: {
-    text: 'Calendrier : Hebcal.com (CC BY 4.0) · Météo : MET Norway',
+    text: 'Bienvenue à Beth Menahem',
     enabled: true,
   },
 };

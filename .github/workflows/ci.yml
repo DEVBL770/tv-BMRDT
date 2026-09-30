@@ -45,7 +45,7 @@ jobs:
         run: |
           pnpm exec tsx supabase/tests/mock-hebcal.ts > "$RUNNER_TEMP/mock-hebcal.log" 2>&1 &
           for attempt in $(seq 1 30); do
-            status=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data ok http://127.0.0.1:8765/_mode)
+            status=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data ok http://127.0.0.1:8765/_mode || true)
             if [ "$status" = "204" ]; then break; fi
             sleep 1
           done

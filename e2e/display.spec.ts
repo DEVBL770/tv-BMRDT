@@ -50,6 +50,11 @@ for (const viewport of [
     for (const scenario of scenarios) {
       await page.goto(`/display?demo=1&at=${encodeURIComponent(scenario.at)}`);
       await expect(page.locator('.display-header')).toBeVisible();
+      await expect(page.locator('[data-zone="attribution"]')).toBeVisible();
+      await expect(page.locator('[data-zone="attribution"]')).toContainText(
+        'Calendrier : Hebcal.com (CC BY 4.0)',
+      );
+      await expect(page.locator('[data-zone="banner"]')).toContainText('Bienvenue à Beth Menahem');
       await expect(page.locator('[lang="he"][dir="rtl"]').first()).toBeVisible();
       const overflow = await page.evaluate(() => ({
         page:

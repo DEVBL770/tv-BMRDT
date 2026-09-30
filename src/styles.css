@@ -564,6 +564,18 @@ button {
   text-align: right;
 }
 
+.display-banner {
+  position: absolute;
+  right: 92px;
+  bottom: 46px;
+  left: 92px;
+  overflow: hidden;
+  color: #725a3d;
+  font-size: 22px;
+  line-height: 1.2;
+  text-align: center;
+}
+
 .unknown-zone {
   grid-column: span 2;
 }
@@ -1981,6 +1993,12 @@ button {
   font-size: 16px;
 }
 
+.display-shell:not(.display-embedded) .display-banner {
+  top: 271px;
+  bottom: auto;
+  line-height: 25px;
+}
+
 .display-shell:not(.display-embedded) .unknown-zone p {
   font-size: 34px;
 }
@@ -2162,11 +2180,6 @@ button {
   margin: 20px auto 0;
   border-radius: 8px;
   object-fit: contain;
-}
-
-.display-shell:not(.display-embedded) .weather-attribution {
-  color: #766753;
-  font-size: 16px;
 }
 
 .player-root {

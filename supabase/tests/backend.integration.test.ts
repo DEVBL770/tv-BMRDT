@@ -555,6 +555,20 @@ describe.sequential('Supabase local integration', () => {
     }
     expect(lastSuccessAt).not.toBeNull();
     expect(Date.parse(lastSuccessAt!)).toBeGreaterThanOrEqual(startedAt);
+
+    let refreshStillRunning = true;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const { data, error } = await service
+        .from('refresh_locks')
+        .select('lock_name')
+        .eq('lock_name', 'calendar-refresh')
+        .maybeSingle();
+      expect(error).toBeNull();
+      refreshStillRunning = data !== null;
+      if (!refreshStillRunning) break;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    expect(refreshStillRunning).toBe(false);
   });
 
   it('refreshes at least 400 calendar days and records source health success', async () => {
@@ -573,6 +587,28 @@ describe.sequential('Supabase local integration', () => {
     expect(healthError).toBeNull();
     expect(health.last_success_at).toBeTruthy();
     expect(health.data_hash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('publishes Hebcal gematria and the weekly parasha in the package', async () => {
+    await setMockMode('ok');
+    const refreshed = await edge('admin', { action: 'refreshData' }, { token: adminToken });
+    expect(refreshed.response.status, JSON.stringify(refreshed.body)).toBe(200);
+    const published = await edge('admin', { action: 'publish' }, { token: adminToken });
+    expect(published.response.status, JSON.stringify(published.body)).toBe(200);
+
+    const current = await currentVersion();
+    const days = current.version.package.days as Array<{
+      date: string;
+      hebrew: { he: string };
+      parasha?: { fr: string; he?: string };
+    }>;
+    const holHamoed = days.find(({ date }) => date === '2026-09-30');
+    const bereshit = days.find(({ date }) => date === '2026-10-10');
+    expect(holHamoed?.hebrew.he).toBe('י״ט תשרי תשפ״ז');
+    expect(bereshit?.parasha).toMatchObject({
+      fr: expect.stringMatching(/^Paracha \S/u),
+      he: 'פרשת בראשית',
+    });
   });
 
   it('allows admin-only source-record overrides while preserving original values', async () => {

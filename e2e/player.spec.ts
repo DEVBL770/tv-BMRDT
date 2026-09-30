@@ -135,8 +135,16 @@ test('appairage, restauration offline, activation et révocation du player', asy
     deviceId = paired.data!.id;
 
     await page.setViewportSize({ width: 1920, height: 1080 });
+    await expect(page.locator('[data-zone="attribution"]')).toBeVisible();
+    await expect(page.locator('[data-zone="attribution"]')).toContainText(
+      'Calendrier : Hebcal.com (CC BY 4.0)',
+    );
     await capture(page, 'player-online-1080p.png');
     await page.setViewportSize({ width: 3840, height: 2160 });
+    await expect(page.locator('[data-zone="attribution"]')).toBeVisible();
+    await expect(page.locator('[data-zone="attribution"]')).toContainText(
+      'Calendrier : Hebcal.com (CC BY 4.0)',
+    );
     await capture(page, 'player-online-4k.png');
     await page.evaluate(async () => {
       await navigator.serviceWorker.ready;

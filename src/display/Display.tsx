@@ -382,6 +382,9 @@ function DisplayCanvas({
     weather.updatedAt !== undefined &&
     now.getTime() - Date.parse(weather.updatedAt) <= 6 * 60 * 60_000;
   const showWeather = isKnown && (weather === undefined || weatherIsFresh);
+  const attribution = packageData.site.attribution.filter(
+    (item) => !/MET Norway/i.test(item) || (showWeather && weatherIsFresh),
+  );
 
   return (
     <div
@@ -434,9 +437,6 @@ function DisplayCanvas({
                       : '18°'}
                   </strong>
                   <small>Paris</small>
-                  {weatherIsFresh ? (
-                    <small className="weather-attribution">{weather?.attribution}</small>
-                  ) : null}
                 </span>
               </div>
             ) : null}
@@ -568,10 +568,13 @@ function DisplayCanvas({
         )}
 
         {layout.banner?.enabled ? (
-          <footer className="display-footer" data-zone="attribution">
+          <div className="display-banner" data-zone="banner">
             {layout.banner.text}
-          </footer>
+          </div>
         ) : null}
+        <footer className="display-footer" data-zone="attribution" aria-label="Attribution">
+          {attribution.join(' · ')}
+        </footer>
       </div>
     </div>
   );

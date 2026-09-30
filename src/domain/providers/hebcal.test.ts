@@ -125,6 +125,7 @@ describe('HebcalProvider avec réponses enregistrées', () => {
       expect(url.searchParams.get('latitude')).toBe('48.8885');
       expect(url.searchParams.get('longitude')).toBe('2.3821');
       expect(url.searchParams.get('i')).toBe('off');
+      expect(url.searchParams.get('s')).toBe('on');
       expect(url.searchParams.get('dr1')).toBe('on');
       expect(url.searchParams.get('leyning')).toBe('off');
       expect(url.searchParams.get('M')).toBe('on');

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "versionNumber": 1,
   "publishedAt": "2026-09-30T10:00:00.000Z",
-  "packageHash": "5ff5c278b249e7f6aa4a10f83afe566061a429b9133d61b67c647d0c30de7932",
+  "packageHash": "67180bebf69242a1a4bd90c7b5e69b7b6367c9be16931376ab661814564bd35c",
   "site": {
     "name": "Beth Menahem",
     "address": "14 rue de Thionville, 75019 Paris",
@@ -27976,7 +27976,7 @@
       }
     ],
     "banner": {
-      "text": "Calendrier : Hebcal.com (CC BY 4.0) · Météo : MET Norway",
+      "text": "Bienvenue à Beth Menahem",
       "enabled": true
     }
   },
