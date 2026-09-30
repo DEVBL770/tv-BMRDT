@@ -77,4 +77,5 @@ jobs:
           done
           test "$status" != "000"
       - run: pnpm test:integration
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
