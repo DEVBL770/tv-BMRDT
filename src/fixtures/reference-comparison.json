@@ -1,0 +1,470 @@
+[
+  {
+    "date": "2026-12-18",
+    "note": "Vendredi d'hiver",
+    "hebrewDate": {
+      "fr": "8 Tévèt 5787",
+      "he": "ח׳ טבת תשפ״ז",
+      "day": 8,
+      "month": "Tévèt",
+      "year": 5787
+    },
+    "hebcalLabels": ["Paracha Vayigach"],
+    "hebcal": {
+      "candleLighting": "16:36",
+      "alot": "06:55",
+      "misheyakir": "07:25",
+      "sunrise": "08:39",
+      "sunset": "16:55",
+      "tzeit": "17:49"
+    },
+    "independent": {
+      "candleLighting": "16:36",
+      "alot": "06:55",
+      "misheyakir": "07:24",
+      "sunrise": "08:39",
+      "sunset": "16:54",
+      "tzeit": "17:49"
+    },
+    "differences": {
+      "candleLighting": 0.6,
+      "alot": 0.2,
+      "misheyakir": 0,
+      "sunrise": 0.5,
+      "sunset": 0.4,
+      "tzeit": 0
+    },
+    "independentCalendar": {
+      "hebrewDate": "ח׳ טֵבֵת תשפ״ז",
+      "labels": []
+    }
+  },
+  {
+    "date": "2027-06-25",
+    "note": "Vendredi d'été",
+    "hebrewDate": {
+      "fr": "20 Sivan 5787",
+      "he": "כ׳ סיון תשפ״ז",
+      "day": 20,
+      "month": "Sivan",
+      "year": 5787
+    },
+    "hebcalLabels": ["Paracha Beha’alotkha"],
+    "hebcal": {
+      "candleLighting": "21:40",
+      "alot": "03:02",
+      "misheyakir": "04:10",
+      "sunrise": "05:48",
+      "sunset": "21:58",
+      "tzeit": "23:04"
+    },
+    "independent": {
+      "candleLighting": "21:40",
+      "alot": "03:01",
+      "misheyakir": "04:10",
+      "sunrise": "05:47",
+      "sunset": "21:58",
+      "tzeit": "23:04"
+    },
+    "differences": {
+      "candleLighting": 0.3,
+      "alot": 0.2,
+      "misheyakir": 0.2,
+      "sunrise": 0.2,
+      "sunset": 0.3,
+      "tzeit": 0.2
+    },
+    "independentCalendar": {
+      "hebrewDate": "כ׳ סִיוָן תשפ״ז",
+      "labels": []
+    }
+  },
+  {
+    "date": "2026-10-25",
+    "note": "Passage à l'heure d'hiver",
+    "hebrewDate": {
+      "fr": "14 Hechvan 5787",
+      "he": "י״ד חשון תשפ״ז",
+      "day": 14,
+      "month": "Hechvan",
+      "year": 5787
+    },
+    "hebcalLabels": ["Paracha Vayéra"],
+    "hebcal": {
+      "alot": "05:52",
+      "misheyakir": "06:20",
+      "sunrise": "07:26",
+      "sunset": "17:42",
+      "tzeit": "18:30"
+    },
+    "independent": {
+      "alot": "05:51",
+      "misheyakir": "06:19",
+      "sunrise": "07:26",
+      "sunset": "17:42",
+      "tzeit": "18:30"
+    },
+    "differences": {
+      "alot": 0.3,
+      "misheyakir": 0.2,
+      "sunrise": 0.2,
+      "sunset": 0.1,
+      "tzeit": 0.1
+    },
+    "independentCalendar": {
+      "hebrewDate": "י״ד חֶשְׁוָן תשפ״ז",
+      "labels": []
+    }
+  },
+  {
+    "date": "2027-03-28",
+    "note": "Passage à l'heure d'été",
+    "hebrewDate": {
+      "fr": "19 Adar II 5787",
+      "he": "י״ט אדר ב׳ תשפ״ז",
+      "day": 19,
+      "month": "Adar II",
+      "year": 5787
+    },
+    "hebcalLabels": ["Paracha Chemini"],
+    "hebcal": {
+      "alot": "06:01",
+      "misheyakir": "06:31",
+      "sunrise": "07:37",
+      "sunset": "20:15",
+      "tzeit": "21:02"
+    },
+    "independent": {
+      "alot": "06:00",
+      "misheyakir": "06:30",
+      "sunrise": "07:37",
+      "sunset": "20:14",
+      "tzeit": "21:02"
+    },
+    "differences": {
+      "alot": 0,
+      "misheyakir": 0.1,
+      "sunrise": 0.2,
+      "sunset": 0.1,
+      "tzeit": 0.4
+    },
+    "independentCalendar": {
+      "hebrewDate": "י״ט אֲדָר ב׳ תשפ״ז",
+      "labels": []
+    }
+  },
+  {
+    "date": "2027-10-01",
+    "note": "Erev Roch Hachana 5788",
+    "hebrewDate": {
+      "fr": "29 Eloul 5787",
+      "he": "כ״ט אלול תשפ״ז",
+      "day": 29,
+      "month": "Eloul",
+      "year": 5787
+    },
+    "hebcalLabels": ["Erev Roch Hachanah"],
+    "hebcal": {
+      "candleLighting": "19:12",
+      "alot": "06:16",
+      "misheyakir": "06:44",
+      "sunrise": "07:50",
+      "sunset": "19:30",
+      "tzeit": "20:17"
+    },
+    "independent": {
+      "candleLighting": "19:12",
+      "alot": "06:15",
+      "misheyakir": "06:44",
+      "sunrise": "07:49",
+      "sunset": "19:30",
+      "tzeit": "20:16"
+    },
+    "differences": {
+      "candleLighting": 0.1,
+      "alot": 0.2,
+      "misheyakir": 0.4,
+      "sunrise": 0.5,
+      "sunset": 0.1,
+      "tzeit": 0.3
+    },
+    "independentCalendar": {
+      "hebrewDate": "כ״ט אֱלוּל תשפ״ז",
+      "labels": ["עֶרֶב רֹאשׁ הַשָּׁנָה"]
+    }
+  },
+  {
+    "date": "2026-09-21",
+    "note": "Kippour 5787",
+    "hebrewDate": {
+      "fr": "10 Tichri 5787",
+      "he": "י׳ תשרי תשפ״ז",
+      "day": 10,
+      "month": "Tichri",
+      "year": 5787
+    },
+    "hebcalLabels": ["Yom Kippour"],
+    "hebcal": {
+      "havdalah": "20:38",
+      "alot": "06:00",
+      "misheyakir": "06:30",
+      "sunrise": "07:35",
+      "sunset": "19:51",
+      "tzeit": "20:38"
+    },
+    "independent": {
+      "havdalah": "20:37",
+      "alot": "06:00",
+      "misheyakir": "06:29",
+      "sunrise": "07:35",
+      "sunset": "19:50",
+      "tzeit": "20:37"
+    },
+    "differences": {
+      "havdalah": 0.3,
+      "alot": 0.3,
+      "misheyakir": 0.3,
+      "sunrise": 0.4,
+      "sunset": 0.2,
+      "tzeit": 0.3
+    },
+    "independentCalendar": {
+      "hebrewDate": "י׳ תִּשְׁרֵי תשפ״ז",
+      "labels": ["יוֹם כִּפּוּר"]
+    }
+  },
+  {
+    "date": "2026-09-26",
+    "note": "Soukkot I 5787",
+    "hebrewDate": {
+      "fr": "15 Tichri 5787",
+      "he": "ט״ו תשרי תשפ״ז",
+      "day": 15,
+      "month": "Tichri",
+      "year": 5787
+    },
+    "hebcalLabels": ["Soukkot I"],
+    "hebcal": {
+      "candleLighting": "20:27",
+      "alot": "06:08",
+      "misheyakir": "06:37",
+      "sunrise": "07:43",
+      "sunset": "19:40",
+      "tzeit": "20:27"
+    },
+    "independent": {
+      "candleLighting": "20:26",
+      "alot": "06:08",
+      "misheyakir": "06:37",
+      "sunrise": "07:42",
+      "sunset": "19:40",
+      "tzeit": "20:26"
+    },
+    "differences": {
+      "candleLighting": 0.2,
+      "alot": 0.3,
+      "misheyakir": 0.2,
+      "sunrise": 0.4,
+      "sunset": 0.1,
+      "tzeit": 0.2
+    },
+    "independentCalendar": {
+      "hebrewDate": "ט״ו תִּשְׁרֵי תשפ״ז",
+      "labels": ["סֻכּוֹת א׳"]
+    }
+  },
+  {
+    "date": "2026-10-02",
+    "note": "Chemini Atseret / Sim'hat Torah 2026",
+    "hebrewDate": {
+      "fr": "21 Tichri 5787",
+      "he": "כ״א תשרי תשפ״ז",
+      "day": 21,
+      "month": "Tichri",
+      "year": 5787
+    },
+    "hebcalLabels": ["Soukkot VII (Hochanah Rabbah)"],
+    "hebcal": {
+      "candleLighting": "19:09",
+      "alot": "06:18",
+      "misheyakir": "06:46",
+      "sunrise": "07:51",
+      "sunset": "19:27",
+      "tzeit": "20:14"
+    },
+    "independent": {
+      "candleLighting": "19:09",
+      "alot": "06:17",
+      "misheyakir": "06:46",
+      "sunrise": "07:51",
+      "sunset": "19:27",
+      "tzeit": "20:14"
+    },
+    "differences": {
+      "candleLighting": 0.5,
+      "alot": 0.3,
+      "misheyakir": 0.2,
+      "sunrise": 0.3,
+      "sunset": 0.5,
+      "tzeit": 0.1
+    },
+    "independentCalendar": {
+      "hebrewDate": "כ״א תִּשְׁרֵי תשפ״ז",
+      "labels": ["סֻכּוֹת ז׳ (הוֹשַׁעְנָא רַבָּה)"]
+    }
+  },
+  {
+    "date": "2027-04-21",
+    "note": "Premier soir de Pessa'h 2027",
+    "hebrewDate": {
+      "fr": "14 Nissan 5787",
+      "he": "י״ד ניסן תשפ״ז",
+      "day": 14,
+      "month": "Nissan",
+      "year": 5787
+    },
+    "hebcalLabels": ["Ta’anit Bekhorot", "Erev Pessa'h"],
+    "hebcal": {
+      "candleLighting": "20:32",
+      "alot": "05:01",
+      "misheyakir": "05:36",
+      "sunrise": "06:49",
+      "sunset": "20:51",
+      "tzeit": "21:42"
+    },
+    "independent": {
+      "candleLighting": "20:32",
+      "alot": "05:01",
+      "misheyakir": "05:36",
+      "sunrise": "06:48",
+      "sunset": "20:50",
+      "tzeit": "21:42"
+    },
+    "differences": {
+      "candleLighting": 0.8,
+      "alot": 0.3,
+      "misheyakir": 0.3,
+      "sunrise": 0.4,
+      "sunset": 0.2,
+      "tzeit": 0.1
+    },
+    "independentCalendar": {
+      "hebrewDate": "י״ד נִיסָן תשפ״ז",
+      "labels": ["עֶרֶב פֶּסַח"]
+    }
+  },
+  {
+    "date": "2027-05-11",
+    "note": "Chavouot 2027",
+    "hebrewDate": {
+      "fr": "4 Iyyar 5787",
+      "he": "ד׳ אייר תשפ״ז",
+      "day": 4,
+      "month": "Iyyar",
+      "year": 5787
+    },
+    "hebcalLabels": ["Paracha Emor"],
+    "hebcal": {
+      "alot": "04:10",
+      "misheyakir": "04:54",
+      "sunrise": "06:15",
+      "sunset": "21:20",
+      "tzeit": "22:17"
+    },
+    "independent": {
+      "alot": "04:10",
+      "misheyakir": "04:53",
+      "sunrise": "06:14",
+      "sunset": "21:19",
+      "tzeit": "22:16"
+    },
+    "differences": {
+      "alot": 0.2,
+      "misheyakir": 0.5,
+      "sunrise": 0.3,
+      "sunset": 0.1,
+      "tzeit": 0.3
+    },
+    "independentCalendar": {
+      "hebrewDate": "ד׳ אִיָּיר תשפ״ז",
+      "labels": []
+    }
+  },
+  {
+    "date": "2026-12-12",
+    "note": "Chabbat de 'Hanouka",
+    "hebrewDate": {
+      "fr": "2 Tévèt 5787",
+      "he": "ב׳ טבת תשפ״ז",
+      "day": 2,
+      "month": "Tévèt",
+      "year": 5787
+    },
+    "hebcalLabels": ["Paracha Miketz"],
+    "hebcal": {
+      "havdalah": "17:48",
+      "alot": "06:51",
+      "misheyakir": "07:21",
+      "sunrise": "08:35",
+      "sunset": "16:53",
+      "tzeit": "17:48"
+    },
+    "independent": {
+      "havdalah": "17:47",
+      "alot": "06:50",
+      "misheyakir": "07:20",
+      "sunrise": "08:34",
+      "sunset": "16:53",
+      "tzeit": "17:47"
+    },
+    "differences": {
+      "havdalah": 0.3,
+      "alot": 0.1,
+      "misheyakir": 0.4,
+      "sunrise": 0.2,
+      "sunset": 0.5,
+      "tzeit": 0.3
+    },
+    "independentCalendar": {
+      "hebrewDate": "ב׳ טֵבֵת תשפ״ז",
+      "labels": ["פָּרָשַׁת מִקֵּץ"]
+    }
+  },
+  {
+    "date": "2027-03-23",
+    "note": "Pourim 2027",
+    "hebrewDate": {
+      "fr": "14 Adar II 5787",
+      "he": "י״ד אדר ב׳ תשפ״ז",
+      "day": 14,
+      "month": "Adar II",
+      "year": 5787
+    },
+    "hebcalLabels": ["Paracha Tzav"],
+    "hebcal": {
+      "alot": "05:13",
+      "misheyakir": "05:42",
+      "sunrise": "06:48",
+      "sunset": "19:07",
+      "tzeit": "19:54"
+    },
+    "independent": {
+      "alot": "05:12",
+      "misheyakir": "05:42",
+      "sunrise": "06:47",
+      "sunset": "19:07",
+      "tzeit": "19:54"
+    },
+    "differences": {
+      "alot": 0.3,
+      "misheyakir": 0.1,
+      "sunrise": 0.2,
+      "sunset": 0.3,
+      "tzeit": 0.4
+    },
+    "independentCalendar": {
+      "hebrewDate": "י״ד אֲדָר ב׳ תשפ״ז",
+      "labels": []
+    }
+  }
+]
