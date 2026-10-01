@@ -88,6 +88,11 @@ test('appairage, restauration offline, activation et révocation du player', asy
   let originalContent: { title: string; body: string | null; media_ids: string[] } | null = null;
 
   try {
+    const { error: rateLimitError } = await service
+      .from('rate_limits')
+      .delete()
+      .like('key', 'pair:%');
+    expect(rateLimitError).toBeNull();
     await edge('admin', { action: 'refreshData' }, adminToken);
     await edge('admin', { action: 'publish' }, adminToken);
     const initialVersion = await currentVersion(service);
