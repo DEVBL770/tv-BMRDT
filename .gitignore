@@ -3,7 +3,10 @@ dist/
 .env
 .env.*
 !.env.example
+!supabase/.env.integration.example
 coverage/
+exports/
 playwright-report/
 test-results/
 supabase/.temp/
+artifacts/
