@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const scenarios = [
@@ -40,6 +41,7 @@ for (const viewport of [
   test(`affichage ${viewport.name} : fêtes, RTL, sponsors et absence de débordement`, async ({
     page,
   }) => {
+    await mkdir(resolve('artifacts/screenshots/v2-visuel'), { recursive: true });
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     const consoleErrors: string[] = [];
     page.on('console', (message) => {
@@ -56,36 +58,47 @@ for (const viewport of [
       );
       await expect(page.locator('[data-zone="banner"]')).toContainText('Bienvenue à Beth Menahem');
       await expect(page.locator('[lang="he"][dir="rtl"]').first()).toBeVisible();
-      const overflow = await page.evaluate(() => ({
-        page:
-          document.documentElement.scrollHeight <= window.innerHeight &&
-          document.documentElement.scrollWidth <= window.innerWidth,
-        zones: [...document.querySelectorAll<HTMLElement>('[data-zone]')].flatMap((element) => {
-          if (
-            element.scrollHeight <= element.clientHeight &&
-            element.scrollWidth <= element.clientWidth
-          ) {
-            return [];
-          }
-          return [
-            {
+      const bannerOverlapsHeader = await page.evaluate(() => {
+        const header = document.querySelector('[data-zone="header"]')!.getBoundingClientRect();
+        const banner = document.querySelector('[data-zone="banner"]')!.getBoundingClientRect();
+        return !(
+          header.right <= banner.left ||
+          banner.right <= header.left ||
+          header.bottom <= banner.top ||
+          banner.bottom <= header.top
+        );
+      });
+      expect(bannerOverlapsHeader, `${scenario.description}: banner/header overlap`).toBe(false);
+      const overflow = await page.evaluate(() => {
+        const overflows = (element: HTMLElement) =>
+          element.scrollHeight > element.clientHeight + 1 ||
+          element.scrollWidth > element.clientWidth + 1;
+        return {
+          page:
+            document.documentElement.scrollHeight <= window.innerHeight &&
+            document.documentElement.scrollWidth <= window.innerWidth,
+          zones: [...document.querySelectorAll<HTMLElement>('[data-zone]')]
+            .filter(overflows)
+            .map((element) => ({
               zone: element.dataset.zone,
               scrollHeight: element.scrollHeight,
               clientHeight: element.clientHeight,
               scrollWidth: element.scrollWidth,
               clientWidth: element.clientWidth,
-              children: [...element.children].map((child) => ({
-                className: (child as HTMLElement).className,
-                height: Math.round(child.getBoundingClientRect().height),
-                scrollHeight: (child as HTMLElement).scrollHeight,
-                clientHeight: (child as HTMLElement).clientHeight,
-              })),
-            },
-          ];
-        }),
-      }));
+            })),
+          study: [...document.querySelectorAll<HTMLElement>('.study-feature')]
+            .filter(overflows)
+            .map((element) => ({
+              scrollHeight: element.scrollHeight,
+              clientHeight: element.clientHeight,
+              scrollWidth: element.scrollWidth,
+              clientWidth: element.clientWidth,
+            })),
+        };
+      });
       expect(overflow.page, `${scenario.description}: page scroll`).toBe(true);
       expect(overflow.zones, `${scenario.description}: zone overflow`).toEqual([]);
+      expect(overflow.study, `${scenario.description}: study overflow`).toEqual([]);
       await assertTvTextMinimum(page, scenario.description);
       expect(
         await page.evaluate(
@@ -114,10 +127,21 @@ for (const viewport of [
         await expect(page.locator('.display-qr')).toHaveCount(0);
         await expect(page.getByText('Horaires à confirmer')).toHaveCount(0);
       }
+      const selectedTheme =
+        scenario.at === '2026-10-06T10:00'
+          ? 'semaine'
+          : scenario.at === '2026-10-10T12:00'
+            ? 'chabbat'
+            : scenario.at === '2026-10-04T12:00'
+              ? 'yomtov'
+              : undefined;
+      const resolution = viewport.name === '1080p' ? '1920x1080' : '3840x2160';
       await page.screenshot({
-        path: resolve(
-          `artifacts/screenshots/display-${viewport.name}-fixed-${scenario.at.replace(':', '-')}.png`,
-        ),
+        path: selectedTheme
+          ? resolve(`artifacts/screenshots/v2-visuel/tv-${selectedTheme}-${resolution}.png`)
+          : resolve(
+              `artifacts/screenshots/display-${viewport.name}-fixed-${scenario.at.replace(':', '-')}.png`,
+            ),
         fullPage: true,
       });
     }
@@ -167,7 +191,7 @@ test('admin mobile 390×844 : horaires, annonces et aperçu avec captures', asyn
     fullPage: true,
   });
 
-  await page.getByRole('button', { name: 'Écran', exact: true }).click();
+  await page.getByRole('button', { name: 'Aperçu / Publier', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Aperçu fidèle' })).toBeVisible();
   await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();
   await expect(page.getByText('BROUILLON', { exact: true })).toBeVisible();

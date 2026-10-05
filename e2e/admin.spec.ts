@@ -72,10 +72,20 @@ async function login(page: Page) {
 }
 
 async function navigateTo(page: Page, section: string) {
-  if (['Tableau de bord', 'Horaires', 'Contenus', 'Médias', 'Écran'].includes(section)) {
-    await page.getByRole('button', { name: section, exact: true }).click();
+  const mainLabels: Record<string, string> = {
+    'Tableau de bord': 'Accueil',
+    Horaires: 'Horaires',
+    Contenus: 'Contenus',
+    Écran: 'Aperçu / Publier',
+    Appareils: 'Appareils',
+  };
+  if (mainLabels[section]) {
+    await page.getByRole('button', { name: mainLabels[section], exact: true }).click();
   } else {
-    await page.getByRole('button', { name: 'Plus', exact: true }).click();
+    const advancedButton = page.getByRole('button', { name: 'Avancé', exact: true });
+    if ((await advancedButton.getAttribute('aria-expanded')) !== 'true') {
+      await advancedButton.click();
+    }
     await page.getByRole('button', { name: section, exact: true }).click();
   }
 }
@@ -510,12 +520,12 @@ test('connexion administrateur par e-mail et mot de passe', async ({ page }) => 
   await expect(page.getByText('Mode Supabase')).toBeVisible();
 });
 
-test('captures mobiles des neuf sections et captures bureau du tableau de bord et de l’aperçu', async ({
-  page,
-}) => {
-  await mkdir(resolve('artifacts/screenshots'), { recursive: true });
+test('capture l’administration mobile et bureau avec son aperçu fidèle', async ({ page }) => {
+  await mkdir(resolve('artifacts/screenshots/v2-visuel'), { recursive: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
+  await expect(page.locator('.admin-toast')).toHaveCount(0, { timeout: 6000 });
+
   const sections = [
     ['Tableau de bord', 'dashboard'],
     ['Horaires', 'horaires'],
@@ -529,22 +539,79 @@ test('captures mobiles des neuf sections et captures bureau du tableau de bord e
   ] as const;
   for (const [section, slug] of sections) {
     await navigateTo(page, section);
-    await expect(page.locator('.admin-topbar h1')).toHaveText(section);
+    await expect(page.locator('.admin-topbar h1')).toHaveText(
+      section === 'Écran' ? 'Aperçu et publication' : section,
+    );
     await expect(page.getByText(/Chargement du journal|Chargement des valeurs/)).toHaveCount(0);
     await page.screenshot({
       path: resolve('artifacts/screenshots', `admin-${slug}-mobile-390x844.png`),
     });
   }
+
+  await navigateTo(page, 'Tableau de bord');
+  await expect(page.locator('.admin-topbar h1')).toHaveText('Tableau de bord');
+  await page.screenshot({
+    path: resolve('artifacts/screenshots/v2-visuel/admin-dashboard-mobile-390x844.png'),
+  });
+  await navigateTo(page, 'Horaires');
+  await expect(page.locator('.admin-topbar h1')).toHaveText('Horaires');
+  await page.screenshot({
+    path: resolve('artifacts/screenshots/v2-visuel/admin-horaires-mobile-390x844.png'),
+  });
+  const advancedButton = page.getByRole('button', { name: 'Avancé', exact: true });
+  await advancedButton.click();
+  await expect(advancedButton).toHaveAttribute('aria-expanded', 'true');
+  await page.screenshot({
+    path: resolve('artifacts/screenshots/v2-visuel/admin-avance-sheet-mobile-390x844.png'),
+  });
+  await page.getByRole('button', { name: 'Fermer le menu Avancé' }).click();
+  await expect(advancedButton).toHaveAttribute('aria-expanded', 'false');
+  await navigateTo(page, 'Écran');
+  await expect(page.locator('.admin-topbar h1')).toHaveText('Aperçu et publication');
+  await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();
+  await expect(page.locator('.preview-frame .display-shell')).toBeVisible();
+  await expect(page.locator('.admin-toast')).toHaveText('Aperçu du brouillon actualisé.');
+  await expect(page.locator('.admin-toast')).toHaveCount(0, { timeout: 6000 });
+  await page.locator('.preview-frame').scrollIntoViewIfNeeded();
+  await page.evaluate(() => {
+    const topbar = document.querySelector('.admin-topbar');
+    const previewControls = document.querySelector('.preview-controls');
+    const scrollRoot = document.scrollingElement;
+    if (!topbar || !previewControls || !scrollRoot) return;
+    const offset =
+      previewControls.getBoundingClientRect().top - topbar.getBoundingClientRect().bottom - 8;
+    if (offset < 0) scrollRoot.scrollBy(0, offset);
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const topbar = document.querySelector('.admin-topbar');
+        const previewControls = document.querySelector('.preview-controls');
+        return (
+          !!topbar &&
+          !!previewControls &&
+          previewControls.getBoundingClientRect().top >= topbar.getBoundingClientRect().bottom + 8
+        );
+      }),
+    )
+    .toBe(true);
+  await page.screenshot({
+    path: resolve('artifacts/screenshots/v2-visuel/admin-apercu-mobile-390x844.png'),
+  });
+
   await page.setViewportSize({ width: 1440, height: 900 });
   await navigateTo(page, 'Tableau de bord');
   await page.screenshot({
-    path: resolve('artifacts/screenshots/admin-dashboard-desktop-1440x900.png'),
+    path: resolve('artifacts/screenshots/v2-visuel/admin-dashboard-desktop-1440x900.png'),
   });
   await navigateTo(page, 'Écran');
   await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();
   await expect(page.locator('.preview-frame .display-shell')).toBeVisible();
+  await expect(page.locator('.admin-toast')).toHaveText('Aperçu du brouillon actualisé.');
+  await expect(page.locator('.admin-toast')).toHaveCount(0, { timeout: 6000 });
+  await page.locator('.preview-frame').scrollIntoViewIfNeeded();
   await page.screenshot({
-    path: resolve('artifacts/screenshots/admin-apercu-desktop-1440x900.png'),
+    path: resolve('artifacts/screenshots/v2-visuel/admin-apercu-desktop-1440x900.png'),
   });
 });
 
@@ -573,9 +640,11 @@ test('exception Min’ha du dimanche publiée sans modifier le lundi et visible 
   await exceptionCard.getByLabel('Heure').fill('18:55');
   await exceptionCard.getByRole('button', { name: 'Enregistrer l’exception' }).click();
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-  await expect(page.locator('.draft-indicator')).toHaveText('Brouillon enregistré');
+  await expect(page.locator('.draft-indicator-label')).toHaveText('Brouillon enregistré');
   await navigateTo(page, 'Écran');
-  await expect(page.getByRole('heading', { name: 'Écran', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Aperçu et publication', exact: true }),
+  ).toBeVisible();
   await page.getByLabel('Date et heure libres').fill(sunday);
   await page.getByLabel('Heure', { exact: true }).fill('12:00');
   await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();
@@ -615,13 +684,69 @@ test('un sponsor est visible en semaine et masqué dans l’aperçu de Chabbat',
   await page.getByLabel('Statut').selectOption('ready');
   await page.getByRole('button', { name: 'Ajouter à la liste' }).click();
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-  await expect(page.locator('.draft-indicator')).toHaveText('Brouillon enregistré');
+  await expect(page.locator('.draft-indicator-label')).toHaveText('Brouillon enregistré');
   await navigateTo(page, 'Écran');
   await page.getByRole('button', { name: 'Semaine', exact: true }).click();
   await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();
   await expect(page.locator('.preview-frame').getByText(title)).toBeVisible();
+
+  const shabbatInstant = new Date(`${nextWeekday(6)}T12:00:00.000Z`);
+  shabbatInstant.setUTCDate(shabbatInstant.getUTCDate() + 7);
+  const shabbatDate = shabbatInstant.toISOString().slice(0, 10);
+  const fridayInstant = new Date(`${shabbatDate}T12:00:00.000Z`);
+  fridayInstant.setUTCDate(fridayInstant.getUTCDate() - 1);
+  const fridayDate = fridayInstant.toISOString().slice(0, 10);
+  const { data: calendarDays, error: calendarError } = await service
+    .from('jewish_days')
+    .select('local_date,zmanim')
+    .in('local_date', [fridayDate, shabbatDate]);
+  expect(calendarError).toBeNull();
+  const friday = calendarDays?.find((day) => day.local_date === fridayDate);
+  const saturday = calendarDays?.find((day) => day.local_date === shabbatDate);
+  expect(friday).toBeTruthy();
+  expect(saturday).toBeTruthy();
+  const fridayZmanim = friday!.zmanim as unknown as Record<string, unknown>;
+  const saturdayZmanim = saturday!.zmanim as unknown as Record<string, unknown>;
+  const [fridayUpdate, saturdayUpdate] = await Promise.all([
+    service
+      .from('jewish_days')
+      .update({
+        zmanim: {
+          ...fridayZmanim,
+          candleLighting: {
+            instant: new Date(`${fridayDate}T16:00:00.000Z`).toISOString(),
+            sourceId: 'e2e:shabbat',
+            overridden: false,
+          },
+        },
+      })
+      .eq('local_date', fridayDate),
+    service
+      .from('jewish_days')
+      .update({
+        zmanim: {
+          ...saturdayZmanim,
+          havdalah: {
+            instant: new Date(`${shabbatDate}T18:00:00.000Z`).toISOString(),
+            sourceId: 'e2e:shabbat',
+            overridden: false,
+          },
+        },
+      })
+      .eq('local_date', shabbatDate),
+  ]);
+  expect(fridayUpdate.error).toBeNull();
+  expect(saturdayUpdate.error).toBeNull();
+
   await page.getByRole('button', { name: 'Chabbat', exact: true }).click();
+  await page.getByLabel('Date et heure libres').fill(shabbatDate);
+  await page.getByLabel('Heure', { exact: true }).fill('12:00');
   await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();
+  await expect(page.locator('.admin-toast')).toHaveText('Aperçu du brouillon actualisé.');
+  await expect(page.locator('.preview-frame .display-shell')).toHaveAttribute(
+    'data-state',
+    'shabbat',
+  );
   await expect(page.locator('.preview-frame').getByText(title)).toHaveCount(0);
 });
 
@@ -689,7 +814,7 @@ test('photo EXIF et PDF deux pages : pages prêtes puis affichées sur la TV apr
   await page.getByLabel('Statut').selectOption('ready');
   await page.getByRole('button', { name: 'Ajouter à la liste' }).click();
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-  await expect(page.locator('.draft-indicator')).toHaveText('Brouillon enregistré');
+  await expect(page.locator('.draft-indicator-label')).toHaveText('Brouillon enregistré');
   const { data: content, error: contentError } = await service
     .from('content_items')
     .select('id')
@@ -829,7 +954,7 @@ test('enregistrer l’approbation religieuse retire la mention en attente de l�
   await page.getByRole('button', { name: 'Enregistrer l’approbation' }).click();
   await expect(page.getByText('Approbation religieuse enregistrée.')).toBeVisible();
   await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-  await expect(page.locator('.draft-indicator')).toHaveText('Brouillon enregistré');
+  await expect(page.locator('.draft-indicator-label')).toHaveText('Brouillon enregistré');
   await navigateTo(page, 'Écran');
   await page.getByRole('button', { name: 'Chabbat', exact: true }).click();
   await page.getByRole('button', { name: 'Actualiser l’aperçu' }).click();

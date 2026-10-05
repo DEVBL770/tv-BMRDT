@@ -190,8 +190,8 @@ const defaultSettings: Settings = {
   updated_at: new Date().toISOString(),
 };
 
-const mainViews: AdminView[] = ['Tableau de bord', 'Horaires', 'Contenus', 'Médias', 'Écran'];
-const extraViews: AdminView[] = ['Historique', 'Appareils', 'Sources', 'Réglages'];
+const mainViews: AdminView[] = ['Tableau de bord', 'Horaires', 'Contenus', 'Écran', 'Appareils'];
+const extraViews: AdminView[] = ['Médias', 'Historique', 'Sources', 'Réglages'];
 const offices = ['Chaharit', 'Min’ha', 'Arvit'];
 const weekdays = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 const dayKinds = [
@@ -762,16 +762,30 @@ export function Admin({ demoMode = false }: { demoMode?: boolean }) {
             <span className="admin-overline">
               {settings.site_name} · {settings.site_address || 'Paris 19e'}
             </span>
-            <h1>{activeView}</h1>
+            <h1>{activeView === 'Écran' ? 'Aperçu et publication' : activeView}</h1>
           </div>
           <div className="admin-topbar-actions">
+            <button
+              className="advanced-mobile-trigger"
+              type="button"
+              aria-label="Avancé"
+              aria-expanded={extraMenuOpen}
+              onClick={() => setExtraMenuOpen((value) => !value)}
+            >
+              Avancé
+            </button>
             <span className={isDirty ? 'draft-indicator draft-dirty' : 'draft-indicator'}>
-              <span />{' '}
-              {isDirty
-                ? 'Modifications non enregistrées'
-                : isDemo
-                  ? 'Brouillon local'
-                  : 'Brouillon enregistré'}
+              <span />
+              <span className="draft-indicator-label">
+                {isDirty
+                  ? 'Modifications non enregistrées'
+                  : isDemo
+                    ? 'Brouillon local'
+                    : 'Brouillon enregistré'}
+              </span>
+              <span className="draft-indicator-short" aria-hidden="true">
+                {isDirty ? 'Modifié' : isDemo ? 'Démo' : 'Enregistré'}
+              </span>
             </span>
             <button
               className="primary-button compact-button"
@@ -905,12 +919,30 @@ export function Admin({ demoMode = false }: { demoMode?: boolean }) {
           />
         )}
       </div>
-      <nav className="mobile-nav" aria-label="Navigation administration">
-        <AdminNav
-          {...navProps}
-          extraOpen={extraMenuOpen}
-          onToggleExtra={() => setExtraMenuOpen((value) => !value)}
+      {extraMenuOpen ? (
+        <button
+          className="mobile-advanced-scrim"
+          type="button"
+          aria-label="Fermer le menu Avancé"
+          onClick={() => setExtraMenuOpen(false)}
         />
+      ) : null}
+      <nav className="mobile-nav" aria-label="Navigation administration">
+        <AdminNav {...navProps} mobile />
+        {extraMenuOpen ? (
+          <div className="admin-nav-extra mobile-advanced-sheet" aria-label="Vues avancées">
+            {extraViews.map((item) => (
+              <button
+                type="button"
+                key={item}
+                className={activeView === item ? 'active' : ''}
+                onClick={() => navigate(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </nav>
       {showPublishDialog ? (
         <div className="modal-backdrop">
@@ -963,12 +995,15 @@ function AdminNav({
   onSelect,
   extraOpen,
   onToggleExtra,
+  mobile = false,
 }: {
   active: AdminView;
   onSelect: (view: AdminView) => void;
-  extraOpen: boolean;
-  onToggleExtra: () => void;
+  extraOpen?: boolean;
+  onToggleExtra?: () => void;
+  mobile?: boolean;
 }) {
+  const advancedOpen = Boolean(extraOpen || extraViews.includes(active));
   return (
     <nav className="admin-nav" aria-label="Navigation">
       {mainViews.map((item) => (
@@ -976,38 +1011,57 @@ function AdminNav({
           type="button"
           key={item}
           className={active === item ? 'active' : ''}
+          aria-label={
+            item === 'Tableau de bord'
+              ? 'Accueil'
+              : item === 'Écran'
+                ? 'Aperçu / Publier'
+                : undefined
+          }
           onClick={() => onSelect(item)}
         >
           <span className="nav-icon" aria-hidden="true">
             {navIcon(item)}
           </span>
-          <span>{item}</span>
+          <span>
+            {item === 'Tableau de bord'
+              ? 'Accueil'
+              : mobile && item === 'Écran'
+                ? 'Publier'
+                : item === 'Écran'
+                  ? 'Aperçu / Publier'
+                  : item}
+          </span>
         </button>
       ))}
-      <button
-        type="button"
-        className={extraViews.includes(active) || extraOpen ? 'active' : ''}
-        aria-expanded={extraOpen}
-        onClick={onToggleExtra}
-      >
-        <span className="nav-icon" aria-hidden="true">
-          ⋯
-        </span>
-        <span>Plus</span>
-      </button>
-      {extraOpen ? (
-        <div className="admin-nav-extra">
-          {extraViews.map((item) => (
-            <button
-              type="button"
-              key={item}
-              className={active === item ? 'active' : ''}
-              onClick={() => onSelect(item)}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+      {!mobile ? (
+        <>
+          <button
+            type="button"
+            className={advancedOpen ? 'active' : ''}
+            aria-expanded={advancedOpen}
+            onClick={onToggleExtra}
+          >
+            <span className="nav-icon" aria-hidden="true">
+              ⋯
+            </span>
+            <span>Avancé</span>
+          </button>
+          {advancedOpen ? (
+            <div className="admin-nav-extra">
+              {extraViews.map((item) => (
+                <button
+                  type="button"
+                  key={item}
+                  className={active === item ? 'active' : ''}
+                  onClick={() => onSelect(item)}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </>
       ) : null}
     </nav>
   );
@@ -1071,6 +1125,42 @@ function Dashboard({
   ].filter(Boolean);
   const hebcal = sourceHealth.find((item) => item.source === 'hebcal');
   const met = sourceHealth.find((item) => item.source === 'met-locationforecast');
+  const actions: Array<{
+    index: string;
+    title: string;
+    detail: string;
+    accessibleName: string;
+    view: AdminView;
+  }> = [
+    {
+      index: '01',
+      title: 'Horaires',
+      detail: `${draft.rules.length} règle(s) · ${draft.exceptions.length} exception(s)`,
+      accessibleName: 'Modifier les horaires',
+      view: 'Horaires',
+    },
+    {
+      index: '02',
+      title: 'Contenus',
+      detail: `${draft.content.filter((item) => item.status !== 'archived').length} contenu(s) actif(s)`,
+      accessibleName: 'Gérer les contenus',
+      view: 'Contenus',
+    },
+    {
+      index: '03',
+      title: 'Aperçu et publication',
+      detail: 'Vérifier le rendu avant publication',
+      accessibleName: 'Prévisualiser et publier',
+      view: 'Écran',
+    },
+    {
+      index: '04',
+      title: 'Appareils',
+      detail: `${devices.length} appareil(s) enregistré(s)`,
+      accessibleName: 'Voir les appareils',
+      view: 'Appareils',
+    },
+  ];
   return (
     <section className="admin-page dashboard-page">
       <div className="welcome-panel">
@@ -1079,34 +1169,21 @@ function Dashboard({
         <p>Préparez les horaires et les annonces, puis vérifiez l’aperçu avant publication.</p>
       </div>
       <div className="dashboard-cards">
-        {[
-          [
-            '01',
-            'Horaires',
-            `${draft.rules.length} règle(s) · ${draft.exceptions.length} exception(s)`,
-            'Horaires',
-          ],
-          [
-            '02',
-            'Contenus',
-            `${draft.content.filter((item) => item.status !== 'archived').length} contenu(s) actif(s)`,
-            'Contenus',
-          ],
-          ['03', 'Écran', 'Aperçu et publication', 'Écran'],
-        ].map(([index, title, detail, view]) => (
+        {actions.map((action) => (
           <button
             className="dashboard-card"
             type="button"
-            key={view}
-            onClick={() => onNavigate(view as AdminView)}
+            key={action.view}
+            aria-label={action.accessibleName}
+            onClick={() => onNavigate(action.view)}
           >
-            <span className="card-index">{index}</span>
-            <strong>{title}</strong>
-            <small>{detail}</small>
+            <span className="card-index">{action.index}</span>
+            <strong>{action.title}</strong>
+            <small>{action.detail}</small>
           </button>
         ))}
       </div>
-      <div className="dashboard-grid">
+      <div className="dashboard-grid dashboard-status-strip">
         <article className="admin-card">
           <h2>Publication active</h2>
           {activeVersion ? (
@@ -3275,6 +3352,7 @@ function navIcon(view: AdminView): string {
     Contenus: '✳',
     Médias: '▧',
     Écran: '▤',
+    Appareils: '▣',
   };
   return icons[view] ?? '•';
 }
