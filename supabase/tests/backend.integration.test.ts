@@ -67,6 +67,7 @@ let primaryDevice: Device | null = null;
 let pairingCode = '';
 let firstPublishedVersion: PublishedVersion | null = null;
 let originalContent: { body: string | null; media_ids: string[] } | null = null;
+let sundayPlanningDate: string | null = null;
 let serviceRunning = false;
 const deviceIds: string[] = [];
 const uploadedPaths: string[] = [];
@@ -253,11 +254,13 @@ describe.sequential('Supabase local integration', () => {
       await service.from('media_assets').delete().in('storage_path', uploadedPaths);
     }
     if (deviceIds.length) await service.from('devices').delete().in('id', deviceIds);
-    await service
-      .from('minyan_exceptions')
-      .delete()
-      .eq('local_date', '2026-10-04')
-      .eq('office', 'Min’ha');
+    if (sundayPlanningDate) {
+      await service
+        .from('minyan_exceptions')
+        .delete()
+        .eq('local_date', sundayPlanningDate)
+        .eq('office', 'Min’ha');
+    }
     if (adminId) {
       await service
         .from('source_records')
@@ -871,11 +874,26 @@ describe.sequential('Supabase local integration', () => {
 
   it('changes only Sunday Min’ha planning without altering Monday or sunset', async () => {
     const original = firstPublishedVersion!.package as {
-      days: Array<{ date: string; zmanim: { sunset?: { instant?: string } } }>;
+      days: Array<{ date: string; weekday: number; zmanim: { sunset?: { instant?: string } } }>;
+      minyanim: Array<{ date: string; office: string; time: string | null }>;
     };
+    const sundayIndex = original.days.findIndex(
+      (day, index) => day.weekday === 0 && original.days[index + 1]?.weekday === 1,
+    );
+    expect(sundayIndex).toBeGreaterThanOrEqual(0);
+    const sunday = original.days[sundayIndex]!;
+    const monday = original.days[sundayIndex + 1]!;
+    sundayPlanningDate = sunday.date;
+    const originalMondayTime = original.minyanim.find(
+      (item) => item.date === monday.date && item.office === 'Min’ha',
+    )?.time;
+    expect(originalMondayTime).toBe('19:00');
+    const originalSunset = sunday.zmanim.sunset?.instant;
+    expect(originalSunset).toBeDefined();
+
     const exception = await adminClient.from('minyan_exceptions').upsert(
       {
-        local_date: '2026-10-04',
+        local_date: sunday.date,
         office: 'Min’ha',
         time: '16:30',
         cancelled: false,
@@ -891,10 +909,10 @@ describe.sequential('Supabase local integration', () => {
     };
     const minyanAt = (date: string) =>
       compiled.minyanim.find((item) => item.date === date && item.office === 'Min’ha')?.time;
-    expect(minyanAt('2026-10-04')).toBe('16:30');
-    expect(minyanAt('2026-10-05')).toBe('19:00');
-    expect(compiled.days.find((day) => day.date === '2026-10-04')?.zmanim.sunset?.instant).toBe(
-      original.days.find((day) => day.date === '2026-10-04')?.zmanim.sunset?.instant,
+    expect(minyanAt(sunday.date)).toBe('16:30');
+    expect(minyanAt(monday.date)).toBe(originalMondayTime);
+    expect(compiled.days.find((day) => day.date === sunday.date)?.zmanim.sunset?.instant).toBe(
+      originalSunset,
     );
   });
 
